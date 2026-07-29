@@ -51,23 +51,14 @@ jobs:
 
       - name: Create release package
         run: |
-          mkdir -p release/web
-          rsync -a \
-            --exclude '.github' \
-            --exclude '.claude' \
-            --exclude '.git' \
-            --exclude '.venv' \
-            --exclude '__pycache__' \
-            --exclude '.pytest_cache' \
-            --exclude '.env' \
-            --exclude 'node_modules' \
-            --exclude 'frontend/src' \
-            --exclude 'frontend/public' \
-            --exclude 'frontend/package-lock.json' \
-            --exclude 'frontend/package.json' \
-            --exclude 'frontend/vite.config.js' \
-            ./ release/web/
-          tar -C release -czf reportes-sii-web-${GITHUB_SHA}.tgz web
+          package_root="$(mktemp -d)"
+          mkdir -p "$package_root/web/frontend"
+
+          rsync -a backend deploy README.md presentacion-migracion-web.html "$package_root/web/"
+          rsync -a frontend/dist "$package_root/web/frontend/"
+
+          tar -C "$package_root" -czf "reportes-sii-web-${GITHUB_SHA}.tgz" web
+          rm -rf "$package_root"
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4

@@ -11,5 +11,7 @@ frontend/dist/
 
 # Varios
 .claude/
+release/
+*.tgz
 .DS_Store
 *.log
