@@ -1,0 +1,137 @@
+name: Deploy web
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+  DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/reportes-sii' }}
+  DEPLOY_SERVICE: ${{ vars.DEPLOY_SERVICE || 'reportes-sii' }}
+  DEPLOY_RUN_USER: ${{ vars.DEPLOY_RUN_USER || 'reportes' }}
+  DEPLOY_SSH_PORT: ${{ vars.DEPLOY_SSH_PORT || '22' }}
+
+jobs:
+  build-test-deploy:
+    name: Build, test and deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Test backend
+        working-directory: backend
+        run: pytest -q
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Create release package
+        run: |
+          mkdir -p release/web
+          rsync -a \
+            --exclude '.github' \
+            --exclude '.claude' \
+            --exclude '.git' \
+            --exclude '.venv' \
+            --exclude '__pycache__' \
+            --exclude '.pytest_cache' \
+            --exclude '.env' \
+            --exclude 'node_modules' \
+            --exclude 'frontend/src' \
+            --exclude 'frontend/public' \
+            --exclude 'frontend/package-lock.json' \
+            --exclude 'frontend/package.json' \
+            --exclude 'frontend/vite.config.js' \
+            ./ release/web/
+          tar -C release -czf reportes-sii-web-${GITHUB_SHA}.tgz web
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          test -n "$DEPLOY_HOST"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$DEPLOY_SSH_PORT" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload release package
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          scp -i ~/.ssh/deploy_key -P "$DEPLOY_SSH_PORT" \
+            "reportes-sii-web-${GITHUB_SHA}.tgz" \
+            "$DEPLOY_USER@$DEPLOY_HOST:/tmp/reportes-sii-web-${GITHUB_SHA}.tgz"
+
+      - name: Install release and restart service
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_SSH_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' DEPLOY_SERVICE='$DEPLOY_SERVICE' DEPLOY_RUN_USER='$DEPLOY_RUN_USER' GITHUB_SHA='$GITHUB_SHA' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          PKG="/tmp/reportes-sii-web-${GITHUB_SHA}.tgz"
+          STAGE="/tmp/reportes-sii-web-${GITHUB_SHA}"
+
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          tar -xzf "$PKG" -C "$STAGE"
+
+          sudo mkdir -p "$DEPLOY_PATH"
+          sudo rsync -a --delete \
+            --exclude 'backend/.env' \
+            --exclude 'backend/.venv' \
+            "$STAGE/web/" "$DEPLOY_PATH/"
+
+          if [ ! -f "$DEPLOY_PATH/backend/.env" ]; then
+            echo "ERROR: falta $DEPLOY_PATH/backend/.env en el servidor." >&2
+            exit 1
+          fi
+
+          sudo chown -R "$DEPLOY_RUN_USER":"$DEPLOY_RUN_USER" "$DEPLOY_PATH"
+
+          if [ ! -x "$DEPLOY_PATH/backend/.venv/bin/python" ]; then
+            sudo -u "$DEPLOY_RUN_USER" python3 -m venv "$DEPLOY_PATH/backend/.venv"
+          fi
+
+          sudo -u "$DEPLOY_RUN_USER" "$DEPLOY_PATH/backend/.venv/bin/python" -m pip install --upgrade pip
+          sudo -u "$DEPLOY_RUN_USER" "$DEPLOY_PATH/backend/.venv/bin/pip" install -r "$DEPLOY_PATH/backend/requirements.txt"
+
+          sudo systemctl restart "$DEPLOY_SERVICE"
+          sudo systemctl --no-pager --full status "$DEPLOY_SERVICE"
+
+          rm -rf "$STAGE" "$PKG"
+REMOTE

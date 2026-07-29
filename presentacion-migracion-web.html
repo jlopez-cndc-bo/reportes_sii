@@ -1,0 +1,540 @@
+<title>Reportes SII — Migración a Web</title>
+<style>
+  :root {
+    --ground: #0e1620;
+    --panel: #15202b;
+    --panel-2: #1b2833;
+    --ink: #eef2f5;
+    --ink-muted: #8fa1b3;
+    --accent: #e8a33d;
+    --accent-ink: #2a1c05;
+    --accent-soft: rgba(232, 163, 61, 0.14);
+    --line: #263442;
+    --good: #5fb894;
+    --good-soft: rgba(95, 184, 148, 0.14);
+    --pending: #7c8fa1;
+    --pending-soft: rgba(124, 143, 161, 0.12);
+    --shadow: 0 20px 50px rgba(0,0,0,0.35);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ground: #f1f4f6;
+      --panel: #ffffff;
+      --panel-2: #f7f9fa;
+      --ink: #131c24;
+      --ink-muted: #57697a;
+      --accent: #b5731f;
+      --accent-ink: #fff7ea;
+      --accent-soft: rgba(181, 115, 31, 0.10);
+      --line: #dde4e9;
+      --good: #2f8f6b;
+      --good-soft: rgba(47, 143, 107, 0.10);
+      --pending: #5c6f80;
+      --pending-soft: rgba(92, 111, 128, 0.08);
+      --shadow: 0 20px 50px rgba(20,30,40,0.10);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0e1620; --panel: #15202b; --panel-2: #1b2833;
+    --ink: #eef2f5; --ink-muted: #8fa1b3;
+    --accent: #e8a33d; --accent-ink: #2a1c05; --accent-soft: rgba(232, 163, 61, 0.14);
+    --line: #263442; --good: #5fb894; --good-soft: rgba(95, 184, 148, 0.14);
+    --pending: #7c8fa1; --pending-soft: rgba(124, 143, 161, 0.12);
+    --shadow: 0 20px 50px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"] {
+    --ground: #f1f4f6; --panel: #ffffff; --panel-2: #f7f9fa;
+    --ink: #131c24; --ink-muted: #57697a;
+    --accent: #b5731f; --accent-ink: #fff7ea; --accent-soft: rgba(181, 115, 31, 0.10);
+    --line: #dde4e9; --good: #2f8f6b; --good-soft: rgba(47, 143, 107, 0.10);
+    --pending: #5c6f80; --pending-soft: rgba(92, 111, 128, 0.08);
+    --shadow: 0 20px 50px rgba(20,30,40,0.10);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .mono {
+    font-family: "Cascadia Code", "SF Mono", "Consolas", "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .deck {
+    height: 100vh;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .deck { scroll-behavior: auto; }
+    .sweep { animation: none !important; }
+  }
+
+  .slide {
+    position: relative;
+    min-height: 100vh;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 6vh 9vw 6vh 11vw;
+    border-bottom: 1px solid var(--line);
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-position: -1px -1px;
+    background-color: var(--ground);
+    opacity: 0.55;
+  }
+  .slide { opacity: 1; }
+  .slide::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: var(--ground);
+    opacity: 0.86;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .slide > * { position: relative; z-index: 1; }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 1.1rem;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 22px; height: 2px;
+    background: var(--accent);
+    display: inline-block;
+  }
+
+  h1, h2 {
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 0.9rem 0;
+    line-height: 1.05;
+  }
+  h1 { font-size: clamp(2.4rem, 5vw, 4.2rem); }
+  h2 { font-size: clamp(1.9rem, 3.6vw, 3rem); }
+
+  .lede {
+    color: var(--ink-muted);
+    font-size: 1.15rem;
+    max-width: 46ch;
+    line-height: 1.55;
+    margin: 0 0 2rem 0;
+  }
+
+  .body-text {
+    color: var(--ink-muted);
+    font-size: 1.05rem;
+    line-height: 1.65;
+    max-width: 52ch;
+  }
+
+  ul.plain { list-style: none; margin: 0; padding: 0; }
+  ul.checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.85rem; max-width: 56ch; }
+  ul.checklist li {
+    display: flex; gap: 0.9rem; align-items: baseline;
+    font-size: 1.05rem; color: var(--ink); line-height: 1.5;
+  }
+  ul.checklist li::before {
+    content: "";
+    flex: none;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-top: 0.5em;
+  }
+  ul.checklist li b { font-weight: 700; }
+  ul.checklist li span.dim { color: var(--ink-muted); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2.2rem; max-width: 1000px; }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    max-width: 900px;
+  }
+  .compare-col {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1.5rem 1.6rem;
+    background: var(--panel);
+  }
+  .compare-col.now { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .compare-label {
+    font-family: "Cascadia Code", "SF Mono", "Consolas", "Roboto Mono", monospace;
+    font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-muted); margin-bottom: 1rem; display: block;
+  }
+  .compare-col.now .compare-label { color: var(--accent); }
+  .compare-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.7rem; }
+  .compare-col li { font-size: 0.98rem; line-height: 1.45; color: var(--ink); }
+  .compare-col li span.dim { color: var(--ink-muted); display: block; font-size: 0.85rem; margin-top: 0.15rem; }
+
+  .card {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 4px;
+    padding: 1.8rem 2rem;
+  }
+
+  .module-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6rem; max-width: 980px; }
+  @media (max-width: 900px) { .module-cards { grid-template-columns: 1fr; } }
+  .module-card {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 4px;
+    padding: 1.9rem 2rem;
+  }
+  .module-card h3 { margin: 0 0 0.9rem 0; font-size: 1.35rem; letter-spacing: -0.01em; }
+  .module-card ul { list-style: none; margin: 0 0 1.1rem 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  .module-card li { font-size: 0.95rem; color: var(--ink-muted); padding-left: 1rem; position: relative; }
+  .module-card li::before { content: "–"; position: absolute; left: 0; color: var(--ink-muted); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 0.5em;
+    font-family: "Cascadia Code", "SF Mono", "Consolas", "Roboto Mono", monospace;
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 0.3em 0.75em; border-radius: 999px;
+  }
+  .pill.done { background: var(--good-soft); color: var(--good); }
+  .pill.pending { background: var(--pending-soft); color: var(--pending); }
+  .pill::before { content: "●"; font-size: 0.6em; }
+
+  .stat-row { display: flex; gap: 1.4rem; flex-wrap: wrap; max-width: 980px; margin-top: 1rem; }
+  .stat {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 4px;
+    padding: 1.3rem 1.5rem;
+    min-width: 190px;
+    flex: 1 1 190px;
+  }
+  .stat-num {
+    font-family: "Cascadia Code", "SF Mono", "Consolas", "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 2.1rem; font-weight: 700; color: var(--accent);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+  .stat-label { font-size: 0.88rem; color: var(--ink-muted); line-height: 1.35; }
+
+  .feature-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 1.1rem 2rem; max-width: 900px;
+  }
+  @media (max-width: 900px) { .feature-grid { grid-template-columns: 1fr; } }
+  .feature {
+    display: flex; gap: 0.8rem; align-items: flex-start;
+    font-size: 0.98rem; color: var(--ink); line-height: 1.4;
+  }
+  .feature .dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-top: 0.55em; }
+  .feature span.dim { display: block; color: var(--ink-muted); font-size: 0.85rem; margin-top: 0.15rem; }
+
+  /* rail nav */
+  .rail {
+    position: fixed; left: 2.2rem; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 0.65rem; z-index: 10;
+  }
+  .rail button {
+    width: 9px; height: 9px; border-radius: 50%;
+    border: 1.5px solid var(--ink-muted);
+    background: transparent;
+    padding: 0; cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  }
+  .rail button:hover { transform: scale(1.3); }
+  .rail button.active { background: var(--accent); border-color: var(--accent); }
+  .rail button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  .counter {
+    position: fixed; right: 2.4rem; bottom: 1.8rem; z-index: 10;
+    font-family: "Cascadia Code", "SF Mono", "Consolas", "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem; color: var(--ink-muted);
+    letter-spacing: 0.05em;
+  }
+  .counter b { color: var(--ink); }
+
+  .brand {
+    position: fixed; left: 2.4rem; top: 1.8rem; z-index: 10;
+    font-family: "Cascadia Code", "SF Mono", "Consolas", "Roboto Mono", monospace;
+    font-size: 0.78rem; color: var(--ink-muted); letter-spacing: 0.08em;
+  }
+  .brand b { color: var(--ink); }
+
+  .sweep {
+    position: absolute; left: 0; top: 46%;
+    height: 1px; width: 0%;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: sweepline 2.4s ease-out 0.3s forwards;
+    z-index: 0;
+  }
+  @keyframes sweepline { 0% { width: 0%; opacity: 0; } 15% { opacity: 1; } 100% { width: 100%; opacity: 0.4; } }
+
+  .kicker-num {
+    font-family: "Cascadia Code", "SF Mono", "Consolas", "Roboto Mono", monospace;
+    color: var(--ink-muted); font-size: 0.9rem; margin-bottom: 1.4rem; letter-spacing: 0.05em;
+  }
+
+  .footer-meta {
+    display: flex; gap: 2rem; margin-top: 2.4rem;
+    font-family: "Cascadia Code", "SF Mono", "Consolas", "Roboto Mono", monospace;
+    font-size: 0.8rem; color: var(--ink-muted); letter-spacing: 0.04em;
+  }
+
+  .cta {
+    display: inline-block; margin-top: 1.6rem;
+    border: 1px solid var(--accent); color: var(--accent);
+    padding: 0.7em 1.4em; border-radius: 2px;
+    font-size: 0.9rem; letter-spacing: 0.04em; font-weight: 600;
+  }
+
+  @media (max-width: 640px) {
+    .slide { padding: 8vh 7vw; }
+    .rail { left: 0.8rem; }
+    .counter { right: 1rem; }
+    .brand { left: 1rem; }
+  }
+</style>
+
+<div class="brand">CNDC <b>·</b> REPORTES SII</div>
+<div class="rail" id="rail"></div>
+<div class="counter" id="counter"><b>01</b> / 11</div>
+
+<div class="deck" id="deck">
+
+  <section class="slide" id="s1">
+    <div class="sweep"></div>
+    <div class="eyebrow">CNDC · Sector Eléctrico</div>
+    <h1>Reportes SII —<br>de escritorio a la web</h1>
+    <p class="lede">Migración de los módulos de Indisponibilidades y SMEC a una aplicación web moderna, con acceso directo desde el navegador y la base Oracle en modo solo lectura.</p>
+    <div class="footer-meta">
+      <span>SISTEMA EN PRODUCCIÓN</span>
+      <span>27 · 07 · 2026</span>
+    </div>
+  </section>
+
+  <section class="slide" id="s2">
+    <div class="eyebrow">Contexto</div>
+    <h2>Un sistema que cumplió su ciclo</h2>
+    <ul class="checklist">
+      <li><span><b>Escritorio, módulo por módulo</b> — SMEC, Indisponibilidades y 04_DC_DATA son aplicaciones WinForms separadas que se instalan equipo por equipo.</span></li>
+      <li><span><b>Tecnología de más de 15 años</b> — .NET 2.0/3.5, arquitectura de 32 bits, sin actualizaciones posibles del framework base.</span></li>
+      <li><span><b>Configuración manual por PC</b> — la conexión a Oracle se define a mano en el Registro de Windows de cada estación de trabajo.</span></li>
+      <li><span><b>Cada cambio, una reinstalación</b> — no existe una versión única: actualizar significa tocar cada equipo de la red.</span></li>
+    </ul>
+  </section>
+
+  <section class="slide" id="s3">
+    <div class="eyebrow">Objetivo</div>
+    <h2>Una sola aplicación, en el navegador</h2>
+    <ul class="checklist">
+      <li><span><b>Acceso inmediato</b> — desde cualquier PC de la red, sin instalar nada: solo un enlace.</span></li>
+      <li><span><b>Una única versión</b> — se actualiza en el servidor una vez, no equipo por equipo.</span></li>
+      <li><span><b>Oracle en modo solo lectura</b> — la aplicación web nunca escribe sobre las tablas productivas.</span></li>
+      <li><span><b>Base para el resto de módulos</b> — el mismo backend queda listo para incorporar SCADA y SISFALLA a futuro.</span></li>
+    </ul>
+  </section>
+
+  <section class="slide" id="s4">
+    <div class="eyebrow">Arquitectura</div>
+    <h2>El stack, antes y ahora</h2>
+    <div class="compare">
+      <div class="compare-col">
+        <span class="compare-label">Antes</span>
+        <ul>
+          <li>WinForms de escritorio<span class="dim">3 módulos independientes</span></li>
+          <li>.NET 2.0 / 3.5, 32 bits<span class="dim">sin rutas de actualización</span></li>
+          <li>ODP.NET + Registro de Windows<span class="dim">configuración manual por equipo</span></li>
+          <li>Instalación por estación<span class="dim">cada cambio requiere reinstalar</span></li>
+        </ul>
+      </div>
+      <div class="compare-col now">
+        <span class="compare-label">Ahora</span>
+        <ul>
+          <li>FastAPI (Python) + React<span class="dim">servido como una sola URL</span></li>
+          <li>Driver <code class="mono">oracledb</code>, modo thin<span class="dim">sin cliente Oracle que instalar</span></li>
+          <li>Configuración por archivo <code class="mono">.env</code><span class="dim">sin tocar el Registro</span></li>
+          <li>Un solo despliegue<span class="dim">todos acceden a la misma versión</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="s5">
+    <div class="eyebrow">Alcance</div>
+    <h2>Dos módulos completos</h2>
+    <div class="module-cards">
+      <div class="module-card">
+        <span class="pill done">Completado</span>
+        <h3 style="margin-top:0.8rem;">Indisponibilidades</h3>
+        <ul>
+          <li>5 reportes de potencia y horas</li>
+          <li>Árbol Agente → Central → Unidad</li>
+          <li>Programación de mantenimiento</li>
+          <li>Comparación programado vs. real</li>
+        </ul>
+      </div>
+      <div class="module-card">
+        <span class="pill done">Completado</span>
+        <h3 style="margin-top:0.8rem;">SMEC</h3>
+        <ul>
+          <li>Potencia: 15 min, hora, máximas</li>
+          <li>Energía: día, mes, año</li>
+          <li>Factor de carga</li>
+          <li>Drill-down Agente → Central → Medidor</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="s6">
+    <div class="kicker-num">MÓDULO 01</div>
+    <h2>Indisponibilidades</h2>
+    <p class="body-text" style="margin-bottom:1.2rem;">Los cinco reportes originales, más el árbol de equipos con su estado de vigencia:</p>
+    <ul class="checklist">
+      <li><span>Potencias Disponibles</span></li>
+      <li><span>Potencias Indisponibles</span></li>
+      <li><span>Horas de Disponibilidad</span></li>
+      <li><span>Horas de No Disponibilidad</span></li>
+      <li><span>Horas por Tipo de Operación</span></li>
+    </ul>
+  </section>
+
+  <section class="slide" id="s7">
+    <div class="kicker-num">MÓDULO 02</div>
+    <h2>SMEC — Potencia y Energía</h2>
+    <div class="grid2">
+      <div>
+        <ul class="checklist">
+          <li><span><b>Potencia</b> — 15 minutos, por hora, máxima diaria y máxima entre fechas</span></li>
+          <li><span><b>Drill-down</b> — Agente → Central → Medidor en una sola vista</span></li>
+          <li><span><b>Dirección</b> — Inyección y Retiro, seleccionable en todo el módulo</span></li>
+        </ul>
+      </div>
+      <div>
+        <ul class="checklist">
+          <li><span><b>Energía</b> — por día, por mes y por año</span></li>
+          <li><span><b>Factor de carga</b> — fórmula recuperada de la lógica Oracle ya existente</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="s8">
+    <div class="eyebrow">Experiencia de uso</div>
+    <h2>Detalles que ahorran tiempo</h2>
+    <div class="feature-grid">
+      <div class="feature"><span class="dot"></span><span>Exportar a Excel con un clic<span class="dim">título, formato y columnas fijas incluidos</span></span></div>
+      <div class="feature"><span class="dot"></span><span>Copiar y pegar directo a Excel<span class="dim">sin pasar por el botón de exportar</span></span></div>
+      <div class="feature"><span class="dot"></span><span>Gráficos junto a cada tabla<span class="dim">potencia y energía, con un clic</span></span></div>
+      <div class="feature"><span class="dot"></span><span>Atajos de fecha<span class="dim">hoy, ayer, mes actual, mes anterior</span></span></div>
+      <div class="feature"><span class="dot"></span><span>El árbol recuerda la selección<span class="dim">entre reportes y entre sesiones</span></span></div>
+      <div class="feature"><span class="dot"></span><span>Formato boliviano<span class="dim">fechas y números, negativos en rojo</span></span></div>
+    </div>
+  </section>
+
+  <section class="slide" id="s9">
+    <div class="eyebrow">Calidad y validación</div>
+    <h2>Verificado contra datos reales</h2>
+    <p class="body-text" style="margin-bottom:0.5rem;">Cada reporte se probó extremo a extremo contra la base de desarrollo antes de darlo por completo.</p>
+    <div class="stat-row">
+      <div class="stat"><div class="stat-num">29</div><div class="stat-label">pruebas automatizadas, en verde</div></div>
+      <div class="stat"><div class="stat-num">16 años</div><div class="stat-label">de datos históricos probados (2010 – hoy)</div></div>
+    </div>
+  </section>
+
+  <section class="slide" id="s10">
+    <div class="eyebrow">Corto plazo</div>
+    <h2>Datos SCADA, disponibles por API</h2>
+    <div class="grid2">
+      <div>
+        <p class="body-text" style="margin-bottom:1.2rem;">Antes de reconstruir toda la pantalla visual de SCADA, el primer paso es exponer sus datos para que se puedan consultar directamente:</p>
+        <ul class="checklist">
+          <li><span><b>Consulta de potencia en tiempo real</b> — los mismos datos que hoy solo se ven en la pantalla SCADA de escritorio</span></li>
+          <li><span><b>Acceso a los datos del HFD de SCADA</b> — Generación, Transferencia, Embalses y TAP</span></li>
+          <li><span><b>Acceso mediante una API</b> — una ruta estándar para que otros sistemas consulten esos datos, sin pasar por una pantalla</span></li>
+          <li><span><b>Uso interno dentro del CNDC</b> — otras áreas y procesos internos podrán consumir esos datos para sus propias necesidades</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="compare-label" style="display:block;margin-bottom:0.9rem;">¿Qué es una API?</span>
+        <p class="body-text" style="max-width:none;">Es una puerta de acceso estandarizada: un sistema pide datos con una solicitud simple — por ejemplo, "dame la potencia de la última hora" — y recibe la respuesta lista para usar.</p>
+        <p class="body-text" style="max-width:none;margin-top:0.9rem;">Dentro del CNDC, otros procesos y sistemas internos podrán consumir esos datos de SCADA directamente para su propio trabajo, sin duplicar información ni depender de la pantalla de escritorio.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" id="s11">
+    <div class="eyebrow">Resultado</div>
+    <h2>Un producto terminado, en producción</h2>
+    <p class="lede">Indisponibilidades y SMEC funcionan de punta a punta en la nueva plataforma: verificados contra datos reales, desplegados con datos reales y en uso por todo el equipo.</p>
+    <div style="display:flex; align-items:center; gap:1.2rem; flex-wrap:wrap; margin-top:0.4rem;">
+      <div class="pill done" style="font-size:0.85rem;padding:0.5em 1.1em;">En producción</div>
+      <a class="cta" style="text-decoration:none;" href="http://proyectos.cndc.bo:8081/" target="_blank" rel="noopener">Ver la aplicación en vivo →</a>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const deck = document.getElementById('deck');
+  const rail = document.getElementById('rail');
+  const counter = document.getElementById('counter');
+
+  slides.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.setAttribute('aria-label', 'Ir a la diapositiva ' + (i + 1));
+    b.addEventListener('click', () => s.scrollIntoView({ behavior: 'smooth' }));
+    rail.appendChild(b);
+  });
+  const dots = Array.from(rail.children);
+
+  function setActive(i) {
+    dots.forEach((d, idx) => d.classList.toggle('active', idx === i));
+    counter.innerHTML = '<b>' + String(i + 1).padStart(2, '0') + '</b> / ' + slides.length;
+  }
+  setActive(0);
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const idx = slides.indexOf(e.target);
+        if (idx !== -1) setActive(idx);
+      }
+    });
+  }, { root: deck, threshold: 0.6 });
+  slides.forEach(s => io.observe(s));
+
+  document.addEventListener('keydown', (e) => {
+    const active = dots.findIndex(d => d.classList.contains('active'));
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown') {
+      e.preventDefault();
+      if (active < slides.length - 1) slides[active + 1].scrollIntoView({ behavior: 'smooth' });
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      if (active > 0) slides[active - 1].scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+</script>
