@@ -77,26 +77,36 @@ y reiniciar (`sudo systemctl restart reportes-sii`) — se activa HTTP Basic.
 El repositorio debe crearse desde la carpeta `web/` para versionar sólo la
 solución web, sin los proyectos WinForms/.NET legacy de la raíz.
 
-Incluye `.github/workflows/deploy-web.yml`. En cada push a `main`
-(o manualmente desde `workflow_dispatch`) el pipeline:
+Incluye `.github/workflows/deploy-web.yml`. No se ejecuta automáticamente por
+push; se lanza manualmente desde GitHub Actions cuando se quiere generar un
+paquete descargable.
+
+El pipeline:
 
 1. instala dependencias del backend;
 2. ejecuta `pytest`;
 3. instala dependencias del frontend;
 4. ejecuta `npm run build`;
-5. publica un artefacto `.tgz`;
-6. un runner self-hosted dentro de la red interna descarga el artefacto;
-7. sincroniza `/opt/reportes-sii` conservando `backend/.env` y `backend/.venv`;
-8. instala/actualiza dependencias Python y reinicia `systemd`.
+5. publica un artefacto `.tgz` descargable desde GitHub.
 
-Este servidor no está publicado en Internet, por lo que no se usa SSH desde los
-runners públicos de GitHub. Instalar un **self-hosted runner** de GitHub en el
-servidor `proyectos.cndc.bo` o en otra máquina Linux dentro de la red CNDC con
-acceso a `/opt/reportes-sii`.
+Para generarlo:
 
-El runner debe tener la etiqueta `linux`. Si se instala en el propio servidor
-como usuario `administrador`, reutiliza las reglas `sudoers` configuradas para
-actualizar `/opt/reportes-sii` y reiniciar `reportes-sii`.
+1. GitHub → `Actions`.
+2. `Build web package`.
+3. `Run workflow`.
+4. Descargar el artefacto `reportes-sii-web`.
+
+Como `proyectos.cndc.bo` es un servidor interno, los runners públicos de GitHub
+no pueden conectarse por SSH hacia él. El despliegue se completa manualmente
+descargando el artefacto en el servidor y ejecutando:
+
+```bash
+chmod +x deploy/install_package.sh
+./deploy/install_package.sh /ruta/reportes-sii-web-<sha>.tgz
+```
+
+El script sincroniza `/opt/reportes-sii` conservando `backend/.env` y
+`backend/.venv`, instala/actualiza dependencias Python y reinicia `systemd`.
 
 Configurar en GitHub → Settings → Secrets and variables → Actions → Variables:
 

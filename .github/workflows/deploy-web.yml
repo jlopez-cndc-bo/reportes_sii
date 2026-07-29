@@ -1,9 +1,6 @@
-name: Deploy web
+name: Build web package
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 env:
@@ -78,50 +75,3 @@ jobs:
           name: reportes-sii-web
           path: reportes-sii-web-${{ github.sha }}.tgz
           if-no-files-found: error
-
-  deploy:
-    name: Deploy on internal runner
-    needs: build-test-package
-    runs-on: [self-hosted, linux]
-
-    steps:
-      - name: Download release artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: reportes-sii-web
-
-      - name: Install release and restart service
-        run: |
-          set -euo pipefail
-
-          PKG="$PWD/reportes-sii-web-${GITHUB_SHA}.tgz"
-          STAGE="/tmp/reportes-sii-web-${GITHUB_SHA}"
-
-          rm -rf "$STAGE"
-          mkdir -p "$STAGE"
-          tar -xzf "$PKG" -C "$STAGE"
-
-          sudo mkdir -p "$DEPLOY_PATH"
-          sudo rsync -a --delete \
-            --exclude 'backend/.env' \
-            --exclude 'backend/.venv' \
-            "$STAGE/web/" "$DEPLOY_PATH/"
-
-          if [ ! -f "$DEPLOY_PATH/backend/.env" ]; then
-            echo "ERROR: falta $DEPLOY_PATH/backend/.env en el servidor." >&2
-            exit 1
-          fi
-
-          sudo chown -R "$DEPLOY_RUN_USER":"$DEPLOY_RUN_USER" "$DEPLOY_PATH"
-
-          if [ ! -x "$DEPLOY_PATH/backend/.venv/bin/python" ]; then
-            sudo -u "$DEPLOY_RUN_USER" python3 -m venv "$DEPLOY_PATH/backend/.venv"
-          fi
-
-          sudo -u "$DEPLOY_RUN_USER" "$DEPLOY_PATH/backend/.venv/bin/python" -m pip install --upgrade pip
-          sudo -u "$DEPLOY_RUN_USER" "$DEPLOY_PATH/backend/.venv/bin/pip" install -r "$DEPLOY_PATH/backend/requirements.txt"
-
-          sudo systemctl restart "$DEPLOY_SERVICE"
-          sudo systemctl --no-pager --full status "$DEPLOY_SERVICE"
-
-          rm -rf "$STAGE" "$PKG"
