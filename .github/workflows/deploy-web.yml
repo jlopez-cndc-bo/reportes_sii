@@ -134,4 +134,4 @@ jobs:
           sudo systemctl --no-pager --full status "$DEPLOY_SERVICE"
 
           rm -rf "$STAGE" "$PKG"
-REMOTE
+          REMOTE
