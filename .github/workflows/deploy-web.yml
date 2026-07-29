@@ -12,11 +12,10 @@ env:
   DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/reportes-sii' }}
   DEPLOY_SERVICE: ${{ vars.DEPLOY_SERVICE || 'reportes-sii' }}
   DEPLOY_RUN_USER: ${{ vars.DEPLOY_RUN_USER || 'reportes' }}
-  DEPLOY_SSH_PORT: ${{ vars.DEPLOY_SSH_PORT || '22' }}
 
 jobs:
-  build-test-deploy:
-    name: Build, test and deploy
+  build-test-package:
+    name: Build, test and package
     runs-on: ubuntu-latest
 
     steps:
@@ -73,37 +72,29 @@ jobs:
             ./ release/web/
           tar -C release -czf reportes-sii-web-${GITHUB_SHA}.tgz web
 
-      - name: Configure SSH
-        env:
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-        run: |
-          test -n "$DEPLOY_HOST"
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p "$DEPLOY_SSH_PORT" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-sii-web
+          path: reportes-sii-web-${{ github.sha }}.tgz
+          if-no-files-found: error
 
-      - name: Upload release package
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-        run: |
-          scp -i ~/.ssh/deploy_key -P "$DEPLOY_SSH_PORT" \
-            "reportes-sii-web-${GITHUB_SHA}.tgz" \
-            "$DEPLOY_USER@$DEPLOY_HOST:/tmp/reportes-sii-web-${GITHUB_SHA}.tgz"
+  deploy:
+    name: Deploy on internal runner
+    needs: build-test-package
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Download release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: reportes-sii-web
 
       - name: Install release and restart service
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_SSH_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
-            "DEPLOY_PATH='$DEPLOY_PATH' DEPLOY_SERVICE='$DEPLOY_SERVICE' DEPLOY_RUN_USER='$DEPLOY_RUN_USER' GITHUB_SHA='$GITHUB_SHA' bash -s" <<'REMOTE'
           set -euo pipefail
 
-          PKG="/tmp/reportes-sii-web-${GITHUB_SHA}.tgz"
+          PKG="$PWD/reportes-sii-web-${GITHUB_SHA}.tgz"
           STAGE="/tmp/reportes-sii-web-${GITHUB_SHA}"
 
           rm -rf "$STAGE"
@@ -134,4 +125,3 @@ jobs:
           sudo systemctl --no-pager --full status "$DEPLOY_SERVICE"
 
           rm -rf "$STAGE" "$PKG"
-          REMOTE

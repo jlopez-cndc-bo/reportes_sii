@@ -84,35 +84,30 @@ Incluye `.github/workflows/deploy-web.yml`. En cada push a `main`
 2. ejecuta `pytest`;
 3. instala dependencias del frontend;
 4. ejecuta `npm run build`;
-5. sube un paquete `.tgz` al servidor por SSH;
-6. sincroniza `/opt/reportes-sii` conservando `backend/.env` y `backend/.venv`;
-7. instala/actualiza dependencias Python y reinicia `systemd`.
+5. publica un artefacto `.tgz`;
+6. un runner self-hosted dentro de la red interna descarga el artefacto;
+7. sincroniza `/opt/reportes-sii` conservando `backend/.env` y `backend/.venv`;
+8. instala/actualiza dependencias Python y reinicia `systemd`.
 
-Configurar en GitHub → Settings → Secrets and variables → Actions:
+Este servidor no está publicado en Internet, por lo que no se usa SSH desde los
+runners públicos de GitHub. Instalar un **self-hosted runner** de GitHub en el
+servidor `proyectos.cndc.bo` o en otra máquina Linux dentro de la red CNDC con
+acceso a `/opt/reportes-sii`.
 
-Secrets requeridos:
+El runner debe tener la etiqueta `linux`. Si se instala en el propio servidor
+como usuario `administrador`, reutiliza las reglas `sudoers` configuradas para
+actualizar `/opt/reportes-sii` y reiniciar `reportes-sii`.
 
-| Secret | Uso |
-|---|---|
-| `DEPLOY_HOST` | IP o DNS del servidor Linux |
-| `DEPLOY_USER` | usuario SSH con permiso de `sudo` para `rsync`, `chown` y `systemctl` |
-| `DEPLOY_SSH_KEY` | clave privada SSH para conectar al servidor |
-
-Variables opcionales:
+Configurar en GitHub → Settings → Secrets and variables → Actions → Variables:
 
 | Variable | Default |
 |---|---|
 | `DEPLOY_PATH` | `/opt/reportes-sii` |
 | `DEPLOY_SERVICE` | `reportes-sii` |
 | `DEPLOY_RUN_USER` | `reportes` |
-| `DEPLOY_SSH_PORT` | `22` |
 
 El archivo `backend/.env` debe crearse una sola vez en el servidor y no se sube
 a GitHub. El pipeline falla explícitamente si no existe.
-
-Si el servidor sólo es accesible desde la red interna, usar un runner
-self-hosted dentro de esa red o habilitar acceso SSH controlado desde GitHub
-Actions.
 
 ## Salud y diagnóstico
 - `http://<servidor>:8000/health` → estado de la conexión Oracle.
