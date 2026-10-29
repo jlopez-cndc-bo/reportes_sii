@@ -36,7 +36,11 @@ def _guard(fn, *args, **kwargs):
         raise HTTPException(status_code=503, detail=str(e))
 
 
-@router.get("/estructura")
+@router.get(
+    "/estructura",
+    summary="Árbol Inyección/Retiro→Agente→Central",
+    description="Jerarquía de `dw_relaciones` para elegir los `unidades` (centrales) de un reporte SMEC.",
+)
 def estructura_arbol():
     return _guard(estructura.get_estructura)
 
@@ -74,7 +78,12 @@ def _validar(req: SmecReporteRequest):
                             detail="La fecha final no puede ser anterior a la inicial.")
 
 
-@router.post("/reporte", response_model=ReportResponse)
+@router.post(
+    "/reporte",
+    response_model=ReportResponse,
+    summary="Reporte SMEC (potencia / energía / factor de carga)",
+    description="Un único endpoint despachado por `req.tipo`; ver la descripción de SmecReporteRequest para los valores válidos.",
+)
 def reporte(req: SmecReporteRequest):
     _validar(req)
     return _guard(_despachar, req)
@@ -109,7 +118,11 @@ def reporte_get(
     return _guard(_despachar, req)
 
 
-@router.post("/exportar")
+@router.post(
+    "/exportar",
+    summary="Mismo reporte SMEC, como archivo .xlsx",
+    description="Mismos parámetros que POST /api/smec/reporte; devuelve el workbook ya formateado como adjunto.",
+)
 def exportar(req: SmecReporteRequest):
     _validar(req)
     res = _guard(_despachar, req)

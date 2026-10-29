@@ -41,7 +41,10 @@ def _xlsx_response(result: dict, label: str, f1, f2) -> StreamingResponse:
     return StreamingResponse(buf, media_type=_XLSX, headers=headers)
 
 
-@router.post("/potencias-disponibles")
+@router.post(
+    "/potencias-disponibles",
+    summary="Reporte 1 (Potencias Disponibles), como archivo .xlsx",
+)
 def exp_potencias_disponibles(req: PotenciasDisponiblesRequest):
     _validar(req.fecha_inicio, req.fecha_fin)
     res = _guard(potencias_disponibles.report, req.nivel,
@@ -49,7 +52,10 @@ def exp_potencias_disponibles(req: PotenciasDisponiblesRequest):
     return _xlsx_response(res, "Potencias Disponibles", req.fecha_inicio, req.fecha_fin)
 
 
-@router.post("/potencias-indisponibles")
+@router.post(
+    "/potencias-indisponibles",
+    summary="Reporte 2 (Potencias Indisponibles), como archivo .xlsx",
+)
 def exp_potencias_indisponibles(req: PotenciasIndisponiblesRequest):
     _validar(req.fecha_inicio, req.fecha_fin)
     if req.resolucion == "hora":
@@ -61,7 +67,10 @@ def exp_potencias_indisponibles(req: PotenciasIndisponiblesRequest):
     return _xlsx_response(res, "Potencias Indisponibles", req.fecha_inicio, req.fecha_fin)
 
 
-@router.post("/horas-disponibilidad")
+@router.post(
+    "/horas-disponibilidad",
+    summary="Reporte 3 (Horas de Disponibilidad), como archivo .xlsx",
+)
 def exp_horas_disponibilidad(req: HorasDisponibilidadRequest):
     _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_EVENTOS)
     res = _guard(horas_disponibilidad.report, req.fecha_inicio, req.fecha_fin,
@@ -69,7 +78,10 @@ def exp_horas_disponibilidad(req: HorasDisponibilidadRequest):
     return _xlsx_response(res, "Horas de Disponibilidad", req.fecha_inicio, req.fecha_fin)
 
 
-@router.post("/horas-no-disponibilidad")
+@router.post(
+    "/horas-no-disponibilidad",
+    summary="Reporte 4 (Horas de No Disponibilidad), como archivo .xlsx",
+)
 def exp_horas_no_disponibilidad(req: HorasNoDisponibilidadRequest):
     _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_EVENTOS)
     res = _guard(horas_no_disponibilidad.report, req.fecha_inicio, req.fecha_fin,
@@ -91,7 +103,10 @@ def exp_comparacion(req: ProgramacionRequest):
     return _xlsx_response(res, "Comparación Programado vs Real", req.fecha, req.fecha)
 
 
-@router.post("/horas-tipo-operacion")
+@router.post(
+    "/horas-tipo-operacion",
+    summary="Reporte 5 (Horas por Tipo de Operación), como archivo .xlsx",
+)
 def exp_horas_tipo_operacion(req: HorasTipoOperacionRequest):
     _validar(req.fecha_inicio, req.fecha_fin,
              MAX_DIAS_DIARIO if req.periodo == "dia" else None)

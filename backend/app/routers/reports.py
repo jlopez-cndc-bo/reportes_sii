@@ -76,7 +76,15 @@ def _guard(fn, *args, **kwargs):
         raise HTTPException(status_code=503, detail=str(e))
 
 
-@router.post("/arbol")
+@router.post(
+    "/arbol",
+    summary="Árbol de componentes Agente→Central→Unidad",
+    description=(
+        "Devuelve la jerarquía de componentes eléctricos para elegir los "
+        "`unidades` de cualquier reporte de este módulo. Acotado al rango de "
+        "fechas y tipos de operación / tipos de componente pedidos."
+    ),
+)
 def arbol(req: TreeRequest):
     _validar(req.fecha_inicio, req.fecha_fin)
     return _guard(
@@ -89,7 +97,11 @@ def arbol(req: TreeRequest):
     )
 
 
-@router.post("/reportes/potencias-disponibles", response_model=ReportResponse)
+@router.post(
+    "/reportes/potencias-disponibles",
+    response_model=ReportResponse,
+    summary="Reporte 1: Potencias Disponibles",
+)
 def rpt_potencias_disponibles(req: PotenciasDisponiblesRequest):
     _validar(req.fecha_inicio, req.fecha_fin)
     return _guard(
@@ -98,7 +110,12 @@ def rpt_potencias_disponibles(req: PotenciasDisponiblesRequest):
     )
 
 
-@router.post("/reportes/potencias-indisponibles", response_model=ReportResponse)
+@router.post(
+    "/reportes/potencias-indisponibles",
+    response_model=ReportResponse,
+    summary="Reporte 2: Potencias Indisponibles",
+    description="Pivoteado por intervalo de tiempo (columnas I0..I(n-1)).",
+)
 def rpt_potencias_indisponibles(req: PotenciasIndisponiblesRequest):
     _validar(req.fecha_inicio, req.fecha_fin)
     if req.resolucion == "hora":
@@ -114,7 +131,12 @@ def rpt_potencias_indisponibles(req: PotenciasIndisponiblesRequest):
     )
 
 
-@router.post("/reportes/horas-disponibilidad", response_model=ReportResponse)
+@router.post(
+    "/reportes/horas-disponibilidad",
+    response_model=ReportResponse,
+    summary="Reporte 3: Horas de Disponibilidad",
+    description=f"Una fila por componente. Rango máximo: {MAX_DIAS_EVENTOS} días.",
+)
 def rpt_horas_disponibilidad(req: HorasDisponibilidadRequest):
     _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_EVENTOS)
     return _guard(
@@ -123,7 +145,15 @@ def rpt_horas_disponibilidad(req: HorasDisponibilidadRequest):
     )
 
 
-@router.post("/reportes/horas-no-disponibilidad", response_model=ReportResponse)
+@router.post(
+    "/reportes/horas-no-disponibilidad",
+    response_model=ReportResponse,
+    summary="Reporte 4: Horas de No Disponibilidad",
+    description=(
+        f"Detalle de eventos por componente (una fila por evento, o fusionados "
+        f"si `agregado=true`). Rango máximo: {MAX_DIAS_EVENTOS} días."
+    ),
+)
 def rpt_horas_no_disponibilidad(req: HorasNoDisponibilidadRequest):
     _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_EVENTOS)
     return _guard(
@@ -151,7 +181,16 @@ def rpt_comparacion(req: ProgramacionRequest):
     return _guard(programacion.comparacion, req.fecha, req.tipo)
 
 
-@router.post("/reportes/horas-tipo-operacion", response_model=ReportResponse)
+@router.post(
+    "/reportes/horas-tipo-operacion",
+    response_model=ReportResponse,
+    summary="Reporte 5: Horas por Tipo de Operación",
+    description=(
+        f"Pivoteado por `periodo` (columna por día/mes/año). Rango máximo de "
+        f"{MAX_DIAS_DIARIO} días cuando periodo='dia' (crece una columna por "
+        f"día); sin tope para 'mes'/'anio'."
+    ),
+)
 def rpt_horas_tipo_operacion(req: HorasTipoOperacionRequest):
     # Sólo el desglose diario necesita tope; mes/año generan pocas columnas.
     _validar(req.fecha_inicio, req.fecha_fin,

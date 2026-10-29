@@ -19,11 +19,51 @@ async def lifespan(app: FastAPI):
     close_pool()
 
 
+_DESCRIPTION = """
+API de reportes del CNDC (Indisponibilidades + SMEC + Sisfalla). Además de
+alimentar la UI web, está pensada para que sistemas internos consuman estos
+mismos datos y automaticen sus propios procesos: todos los endpoints bajo
+`/api` devuelven JSON (o un .xlsx en `/api/exportar/*`, `/api/smec/exportar`
+y `/api/sisfalla/exportar/{id}`), documentados abajo con sus parámetros y
+valores válidos — "Try it out" sirve para probar un pedido antes de
+integrarlo.
+
+Sin autenticación (red interna de solo lectura). No hay límite de tasa: se
+asume un número reducido de consumidores conocidos: evitar loops ajustados
+contra Oracle.
+"""
+
+_TAGS_METADATA = [
+    {
+        "name": "indisponibilidades",
+        "description": "Los 5 reportes de indisponibilidad de equipos + árbol de componentes (módulo INDISP).",
+    },
+    {
+        "name": "smec",
+        "description": "Potencia, energía y factor de carga (módulo SMEC) + árbol de la estructura eléctrica.",
+    },
+    {
+        "name": "export",
+        "description": "Mismos reportes de indisponibilidades, como archivo .xlsx descargable.",
+    },
+    {
+        "name": "sisfalla",
+        "description": (
+            "Reportes de fallas del sistema eléctrico (módulo SisFalla): los 15 "
+            "reportes tabulares de solo lectura. Excluidos por decisión del usuario "
+            "(datos de contacto personal, no operativos): agente-contactos y "
+            "notificacion-falla; también fuera de alcance el informe PDF puntual "
+            "informe-falla."
+        ),
+    },
+]
+
 app = FastAPI(
-    title="Reportes SII — Indisponibilidades",
-    description="API de reportes de indisponibilidad de equipos (migración web del módulo INDISP).",
+    title="Reportes SII — CNDC",
+    description=_DESCRIPTION,
     version="0.1.0",
     lifespan=lifespan,
+    openapi_tags=_TAGS_METADATA,
 )
 
 app.add_middleware(
