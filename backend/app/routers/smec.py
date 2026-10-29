@@ -2,7 +2,7 @@
 from datetime import datetime
 from urllib.parse import quote
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from ..export_excel import build_workbook
@@ -76,6 +76,35 @@ def _validar(req: SmecReporteRequest):
 
 @router.post("/reporte", response_model=ReportResponse)
 def reporte(req: SmecReporteRequest):
+    _validar(req)
+    return _guard(_despachar, req)
+
+
+@router.get(
+    "/reporte",
+    response_model=ReportResponse,
+    summary="Reporte SMEC (potencia / energía / factor de carga) — por query params",
+    description=(
+        "Igual a POST /api/smec/reporte pero con los parámetros en la URL, pensado "
+        "para consumidores que solo hacen GET (ej. el conector Web simple de Power BI)."
+    ),
+)
+def reporte_get(
+    tipo: str = Query(..., examples=["potencia_hora"]),
+    fecha_inicio: datetime = Query(..., examples=["2026-06-01T00:00:00"]),
+    fecha_fin: datetime | None = Query(None, examples=["2026-06-30T23:59:59"]),
+    unidades: list[int] = Query(default_factory=list),
+    direccion: str = Query("iny", description="'iny' (inyección) | 'ret' (retiro)."),
+    nivel: str = Query("central"),
+):
+    req = SmecReporteRequest(
+        tipo=tipo,
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+        unidades=unidades,
+        direccion=direccion,
+        nivel=nivel,
+    )
     _validar(req)
     return _guard(_despachar, req)
 
