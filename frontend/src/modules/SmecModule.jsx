@@ -52,6 +52,11 @@ export default function SmecModule() {
   const [generadoEn, setGeneradoEn] = useState(null);
   const [copied, setCopied] = useState(false);
   const [vista, setVista] = useState("tabla");
+  // Export conjunto: un solo .xlsx con hoja Inyección + hoja Retiro, con
+  // TODAS las centrales de cada dirección (el árbol sólo muestra/selecciona
+  // una dirección a la vez, así que la selección actual no decide esto).
+  const [conjunto, setConjunto] = useState(false);
+  const puedeConjunto = report.id === "potencia_15min" || report.id === "potencia_hora";
   const hoy = iso(0);
   const unidad = report.grupo === "Potencia" ? "kW"
     : report.grupo === "Energía" ? "kWh" : "factor 0–1";
@@ -106,7 +111,13 @@ export default function SmecModule() {
 
   const exportar = async () => {
     setExporting(true); setError(null);
-    try { await api.smecExportar(buildBody()); }
+    try {
+      if (conjunto && puedeConjunto) {
+        await api.smecExportarConjunto({ tipo: report.id, fecha_inicio: fechaInicio, nivel });
+      } else {
+        await api.smecExportar(buildBody());
+      }
+    }
     catch (e) { setError(e.message); }
     finally { setExporting(false); }
   };
@@ -232,8 +243,14 @@ export default function SmecModule() {
             <button className="btn btn--primary" onClick={generar} disabled={running || !puedeGenerar}
               title={!puedeGenerar ? "Seleccione al menos una central para generar el reporte." : undefined}>
               {running ? "Generando…" : "Generar reporte"}</button>
-            <button className="btn" onClick={exportar} disabled={exporting || treeLoading || idsSel.length === 0}>
-              {exporting ? "Exportando…" : "Exportar a Excel"}</button>
+            <button className="btn" onClick={exportar}
+              disabled={exporting || treeLoading || (!(conjunto && puedeConjunto) && idsSel.length === 0)}>
+              {exporting ? "Exportando…" : conjunto && puedeConjunto ? "Exportar (2 hojas)" : "Exportar a Excel"}</button>
+            {puedeConjunto && (
+              <label className="totals-toggle" title="Un solo archivo con hoja Inyección + hoja Retiro, con todas las centrales de cada dirección (no depende de la selección del árbol).">
+                <input type="checkbox" checked={conjunto} onChange={(e) => setConjunto(e.target.checked)} /> Conjunto (Iny.+Ret.)
+              </label>
+            )}
           </div>
         </div>
 

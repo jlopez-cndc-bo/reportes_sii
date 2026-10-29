@@ -24,12 +24,8 @@ def _num_format(fmt: str | None) -> str | None:
     return None
 
 
-def build_workbook(result: dict[str, Any], titulo: str) -> BytesIO:
+def _llenar_hoja(ws, result: dict[str, Any], titulo: str) -> None:
     cols = [c for c in result["columns"] if not c.get("hidden")]
-    wb = Workbook()
-    ws = wb.active
-    ws.title = (result.get("table") or "Reporte")[:31]
-
     ncols = len(cols)
     # Fila 1: título combinado.
     ws.cell(row=1, column=1, value=titulo).font = _TITLE_FONT
@@ -75,6 +71,25 @@ def build_workbook(result: dict[str, Any], titulo: str) -> BytesIO:
     # Congelar encabezado + primera columna.
     ws.freeze_panes = ws.cell(row=header_row + 1, column=2)
 
+
+def build_workbook(result: dict[str, Any], titulo: str) -> BytesIO:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = (result.get("table") or "Reporte")[:31]
+    _llenar_hoja(ws, result, titulo)
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+
+def build_workbook_multi(hojas: list[tuple[str, dict[str, Any], str]]) -> BytesIO:
+    """Un workbook con una hoja por elemento de `hojas`: (nombre, result, titulo)."""
+    wb = Workbook()
+    wb.remove(wb.active)
+    for nombre, result, titulo in hojas:
+        ws = wb.create_sheet(nombre[:31])
+        _llenar_hoja(ws, result, titulo)
     buf = BytesIO()
     wb.save(buf)
     buf.seek(0)

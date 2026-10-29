@@ -5,7 +5,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
-from ..export_excel import build_workbook
+from ..export_excel import build_workbook, build_workbook_multi
 from ..schemas import ReportResponse, SmecReporteRequest
 from ..smec import estructura
 from ..smec import reportes as R
@@ -138,5 +138,46 @@ def exportar(req: SmecReporteRequest):
     titulo = f"SMEC · {label} ({dir_lbl}) — desde {ini}"
     buf = build_workbook(res, titulo)
     fname = f"SMEC_{label.replace(' ', '_')}_{dir_lbl}_{ini}.xlsx"
+    headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"}
+    return StreamingResponse(buf, media_type=_XLSX, headers=headers)
+
+
+_RESOLUCION_POR_TIPO = {"potencia_15min": "15min", "potencia_hora": "hora"}
+
+
+@router.post(
+    "/exportar-conjunto",
+    summary="Potencia SMEC (Inyección + Retiro) en un mismo .xlsx, una hoja por dirección",
+    description=(
+        "Sólo para tipo 'potencia_15min'/'potencia_hora'. Trae TODAS las centrales "
+        "de cada dirección (ignora `unidades`/`direccion` del request) con el "
+        "`nivel` y fecha ya elegidos — no depende de la selección del árbol, que "
+        "sólo muestra una dirección a la vez."
+    ),
+)
+def exportar_conjunto(req: SmecReporteRequest):
+    _validar(req)
+    if req.tipo not in _RESOLUCION_POR_TIPO:
+        raise HTTPException(
+            status_code=400,
+            detail="El reporte conjunto sólo aplica a 'potencia_15min' o 'potencia_hora'.",
+        )
+    resolucion = _RESOLUCION_POR_TIPO[req.tipo]
+    label = _TITULOS.get(req.tipo, req.tipo)
+    ini = req.fecha_inicio.date().isoformat()
+
+    hojas = []
+    for direccion, nombre_hoja in (("iny", "Inyección"), ("ret", "Retiro")):
+        res = _guard(R.potencia_intervalo, req.fecha_inicio, [], resolucion, direccion, req.nivel)
+        if res.get("table") == "POT_DRILL":
+            res = {**res, "rows": [
+                {**r, "nombre": "    " * r.get("_nivel", 0) + str(r.get("nombre", ""))}
+                for r in res["rows"]
+            ]}
+        titulo = f"SMEC · {label} ({nombre_hoja}) — desde {ini}"
+        hojas.append((nombre_hoja, res, titulo))
+
+    buf = build_workbook_multi(hojas)
+    fname = f"SMEC_{label.replace(' ', '_')}_Conjunto_{ini}.xlsx"
     headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"}
     return StreamingResponse(buf, media_type=_XLSX, headers=headers)

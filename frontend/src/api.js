@@ -56,6 +56,7 @@ export const api = {
   smecEstructura: () => fetch("/api/smec/estructura").then((r) => r.json()),
   smecReporte: (body) => post("/api/smec/reporte", body),
   smecExportar: (body) => download("/api/smec/exportar", body),
+  smecExportarConjunto: (body) => download("/api/smec/exportar-conjunto", body),
   // Sisfalla
   sisfallaReporte: (endpoint, body) => post(`/api/sisfalla/reportes/${endpoint}`, body),
   sisfallaReporteGet: (endpoint) => fetch(`/api/sisfalla/reportes/${endpoint}`).then((r) => r.json()),
