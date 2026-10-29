@@ -37,14 +37,16 @@ export default function OptionsPanel({ options, values, onChange }) {
           );
         }
         if (opt.type === "number") {
+          const disabled = !!(opt.disabledIf && opt.disabledIf(values));
           return (
-            <label className="opt-number" key={opt.key}>
+            <label className="opt-number" key={opt.key} title={disabled ? opt.disabledTitle : undefined}>
               <span>{opt.label}</span>
               <input
                 type="number"
                 min={opt.min}
                 max={opt.max}
                 value={values[opt.key]}
+                disabled={disabled}
                 onChange={(e) => set(opt.key, e.target.value)}
               />
             </label>

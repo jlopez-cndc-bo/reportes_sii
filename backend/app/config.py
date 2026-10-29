@@ -36,6 +36,23 @@ class Settings:
         self.app_user: str = os.getenv("APP_USER", "")
         self.app_password: str = os.getenv("APP_PASSWORD", "")
 
+        # Fuentes configurables del módulo SISFALLA: en producción son tablas
+        # físicas; en otros entornos pueden ser vistas crosswalk (ver
+        # dossier de migración, sección 6). Sólo nombres de tabla/vista —
+        # nunca binds — por eso se validan como identificador en sisfalla/fuentes.py.
+        self.sisfalla_componentes_source: str = os.getenv(
+            "SISFALLA_COMPONENTES_SOURCE", "QUANTUM.VW_SISFALLA_COMPONENTE"
+        )
+        self.sisfalla_componentes_atributos_source: str = os.getenv(
+            "SISFALLA_COMPONENTES_ATRIBUTOS_SOURCE", "F_AC_COMPONENTE"
+        )
+        self.sisfalla_componentes_sti_source: str = os.getenv(
+            "SISFALLA_COMPONENTES_STI_SOURCE", "F_AC_COMPONENTE_STI"
+        )
+        self.sisfalla_personas_source: str = os.getenv(
+            "SISFALLA_PERSONAS_SOURCE", "F_AP_PERSONA"
+        )
+
     @property
     def auth_enabled(self) -> bool:
         return bool(self.app_user and self.app_password)

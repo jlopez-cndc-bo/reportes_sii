@@ -1,0 +1,170 @@
+// Metadatos de los 15 reportes del módulo SISFALLA. A diferencia de
+// Indisp/SMEC, este dominio no tiene árbol de componentes: los filtros son
+// campos sueltos (cod_falla, agente, desde, hasta), declarados por reporte en
+// `campos` para que el sidebar sólo muestre los que aplican.
+//
+// `sinFiltros: true` = el reporte no acepta ningún parámetro (agentes,
+// edac-analisis): siempre trae todo, y usa GET en vez de POST.
+
+const fallaFiltroBody = (f) => ({
+  cod_falla: f.codFalla ? f.codFalla.trim() : null,
+  agente: f.agente || null,
+  desde: f.desde || null,
+  hasta: f.hasta || null,
+});
+
+export const SISFALLA_REPORTS = [
+  {
+    id: "seguimiento-informes",
+    label: "Seguimiento",
+    grupo: "Informes",
+    metodo: "post",
+    descripcion: "Plazos y estado de seguimiento de informes, por falla y agente.",
+    campos: { codFalla: true, agente: true, desde: true, hasta: true },
+    defaults: { limite: 500 },
+    options: [{ type: "number", key: "limite", label: "Límite de filas", min: 1, max: 2000 }],
+    buildBody: (f, opt) => ({ ...fallaFiltroBody(f), limite: Number(opt.limite) || 500 }),
+  },
+  {
+    id: "detalle-informes",
+    label: "Detalle de informes",
+    grupo: "Informes",
+    metodo: "post",
+    descripcion: "Operaciones registradas sobre informes, por falla, agente y usuario.",
+    campos: { codFalla: true, agente: true, desde: true, hasta: true },
+    // Si se carga gestión (y no hay cod_falla), reemplaza el rango desde/hasta.
+    gestionExcluyeFecha: true,
+    defaults: { gestion: "", limite: 500 },
+    options: [
+      {
+        type: "number", key: "gestion", label: "Gestión (año)", min: 2000, max: 2100,
+        disabledIf: (v) => !!v._codFalla,
+        disabledTitle: "No aplica: ya hay un código de falla puntual cargado.",
+      },
+      { type: "number", key: "limite", label: "Límite de filas", min: 1, max: 2000 },
+    ],
+    buildBody: (f, opt) => {
+      const tieneGestion = !!opt.gestion && !f.codFalla;
+      return {
+        ...fallaFiltroBody(f),
+        desde: tieneGestion ? null : f.desde || null,
+        hasta: tieneGestion ? null : f.hasta || null,
+        gestion: tieneGestion ? Number(opt.gestion) : null,
+        limite: Number(opt.limite) || 500,
+      };
+    },
+  },
+  {
+    id: "detalle-supervisor",
+    label: "Supervisor/operador",
+    grupo: "Informes",
+    metodo: "post",
+    descripcion: "Fallas listadas con supervisor y operador asignados.",
+    campos: { desde: true, hasta: true },
+    buildBody: (f) => ({ desde: f.desde || null, hasta: f.hasta || null }),
+  },
+  {
+    id: "agentes",
+    label: "Catálogo de agentes",
+    grupo: "Agentes",
+    metodo: "get",
+    descripcion: "Todos los agentes del SIN registrados, tengan o no contacto configurado.",
+    sinFiltros: true,
+  },
+  {
+    id: "resumen-agentes",
+    label: "Resumen por agente",
+    grupo: "Agentes",
+    metodo: "post",
+    descripcion: "Cantidad de fallas con informe registrado por cada agente, incluidos los que no tuvieron ninguna en el rango.",
+    campos: { desde: true, hasta: true },
+    buildBody: (f) => ({ desde: f.desde || null, hasta: f.hasta || null }),
+  },
+  {
+    id: "componentes-comprometidos",
+    label: "Componentes comprometidos",
+    grupo: "CNDC",
+    metodo: "post",
+    descripcion: "Componentes afectados en informes finales del CNDC.",
+    campos: { codFalla: true, agente: true, desde: true, hasta: true },
+    reglaCndc: true,
+    buildBody: fallaFiltroBody,
+  },
+  {
+    id: "elementos-comprometidos",
+    label: "Elementos comprometidos",
+    grupo: "CNDC",
+    metodo: "post",
+    descripcion: "Detalle de tiempos de desconexión por componente.",
+    campos: { codFalla: true, agente: true, desde: true, hasta: true },
+    reglaCndc: true,
+    buildBody: fallaFiltroBody,
+  },
+  {
+    id: "falla-alimentadores",
+    label: "Fallas de alimentadores",
+    grupo: "CNDC",
+    metodo: "post",
+    descripcion: "Operaciones de alimentadores, incluida la energía no suministrada (ENS).",
+    campos: { codFalla: true, agente: true, desde: true, hasta: true },
+    reglaCndc: true,
+    buildBody: fallaFiltroBody,
+  },
+  {
+    id: "det-interruptores",
+    label: "Detalle de interruptores",
+    grupo: "CNDC",
+    metodo: "post",
+    descripcion: "Operaciones de interruptores: apertura, cierre y reconexión.",
+    campos: { codFalla: true, agente: true, desde: true, hasta: true },
+    reglaCndc: true,
+    buildBody: fallaFiltroBody,
+  },
+  {
+    id: "reles-operados",
+    label: "Relés operados",
+    grupo: "CNDC",
+    metodo: "post",
+    descripcion: "Relés operados por falla (una fila por operación de interruptor, con o sin relé asociado).",
+    campos: { codFalla: true, agente: true, desde: true, hasta: true },
+    reglaCndc: true,
+    buildBody: fallaFiltroBody,
+  },
+  {
+    id: "detalle-desconexiones",
+    label: "Detalle de desconexiones",
+    grupo: "CNDC",
+    metodo: "post",
+    descripcion: "Detalle STI/no STI de componentes desconectados (líneas, transformadores y autotransformadores de empresas transmisoras) y tiempos asociados.",
+    campos: { codFalla: true, agente: true, desde: true, hasta: true },
+    reglaCndc: true,
+    buildBody: fallaFiltroBody,
+  },
+  {
+    id: "operacion-edac",
+    label: "Operación EDAC",
+    grupo: "CNDC",
+    metodo: "post",
+    descripcion: "Operaciones de alimentadores asociadas a EDAC y análisis de falla.",
+    campos: { codFalla: true, agente: true, desde: true, hasta: true },
+    reglaCndc: true,
+    buildBody: fallaFiltroBody,
+  },
+  {
+    id: "edac",
+    label: "Consulta EDAC",
+    grupo: "EDAC",
+    metodo: "post",
+    descripcion: "Componentes con parámetros EDAC configurados por agente (solo lectura).",
+    campos: { agente: true, desde: true, hasta: true },
+    buildBody: (f) => ({ agente: f.agente || null, desde: f.desde || null, hasta: f.hasta || null }),
+  },
+  {
+    id: "edac-analisis",
+    label: "EDAC para análisis",
+    grupo: "EDAC",
+    metodo: "get",
+    descripcion: "Configuración EDAC vigente (fecha más reciente disponible), agrupada por categoría y etapa.",
+    sinFiltros: true,
+  },
+];

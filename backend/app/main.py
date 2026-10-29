@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
 from .db import close_pool, init_pool, pool_ready
-from .routers import export, reports, smec
+from .routers import export, reports, sisfalla, smec
 from .security import require_auth
 
 
@@ -38,6 +38,7 @@ app.add_middleware(
 app.include_router(reports.router, dependencies=[Depends(require_auth)])
 app.include_router(export.router, dependencies=[Depends(require_auth)])
 app.include_router(smec.router, dependencies=[Depends(require_auth)])
+app.include_router(sisfalla.router, dependencies=[Depends(require_auth)])
 
 
 @app.get("/health")

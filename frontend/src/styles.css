@@ -49,6 +49,11 @@ body { background: var(--bg); color: var(--ink); font-size: 14px; }
 .modtab--active { background: #fff; color: var(--brand); border-color: #fff; font-weight: 650; }
 .modtab-short { font-weight: 800; letter-spacing: .04em; }
 .modtab-label { color: inherit; opacity: .86; }
+.modtab-beta {
+  font-size: 9px; font-weight: 800; letter-spacing: .05em; line-height: 1;
+  background: var(--warn); color: #3a2a00; padding: 2px 5px; border-radius: 999px;
+}
+.modtab--active .modtab-beta { background: #fff0cf; }
 
 .topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 5px 10px; border-radius: 999px; font-weight: 650; }
@@ -69,12 +74,33 @@ body { background: var(--bg); color: var(--ink); font-size: 14px; }
 .panel { padding: 14px 16px; border-bottom: 1px solid var(--line); }
 .panel h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 10px; font-weight: 800; }
 .panel--tree { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+/* Módulos sin árbol (Sisfalla): el panel de filtros ocupa el mismo espacio
+   que llenaría el árbol, para no dejar un hueco vacío en el sidebar. */
+.panel--filtros { flex: 1; min-height: 0; overflow: auto; }
 .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .panel-head h2 { margin: 0; }
 
 .field { display: grid; grid-template-columns: 72px 1fr; align-items: center; gap: 10px; margin-bottom: 8px; }
 .field span { color: var(--muted); }
 .field input { width: 100%; border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 8px; font: inherit; background: #fff; }
+.field-hint { grid-column: 2 / -1; color: var(--muted); font-size: 11px; margin-top: -4px; }
+.field-with-action { display: flex; gap: 6px; align-items: center; }
+.field-with-action input { flex: 1; }
+
+/* ── Buscador de fallas (modal) ── */
+.falla-search-input { width: 100%; border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 7px 9px; font: inherit; margin-bottom: 10px; }
+.falla-search-state { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; padding: 10px 2px; }
+.falla-search-list { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow: auto; }
+.falla-search-row {
+  display: grid; grid-template-columns: 84px 84px 1fr; gap: 10px; width: 100%;
+  text-align: left; border: none; background: none; cursor: pointer; font: inherit;
+  padding: 6px 8px; border-radius: var(--radius-sm);
+}
+.falla-search-row:hover { background: #f5f8fb; }
+.falla-search-cod { font-weight: 650; color: var(--brand); }
+.falla-search-fecha { color: var(--muted); font-size: 12px; }
+.falla-search-desc { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Tree */
 .tree-actions { display: flex; gap: 4px; }

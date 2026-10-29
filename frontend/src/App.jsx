@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { api } from "./api";
 import IndispModule from "./modules/IndispModule";
 import SmecModule from "./modules/SmecModule";
+import SisfallaModule from "./modules/SisfallaModule";
 import cndcLogo from "./assets/cndc-logo-naranja.png";
 
 const MODULOS = [
   { id: "indisp", label: "Indisponibilidades", short: "INDISP" },
   { id: "smec", label: "SMEC", short: "SMEC" },
+  { id: "sisfalla", label: "Sisfalla", short: "SISFALLA", beta: true },
 ];
 
 function HelpModal({ onClose }) {
@@ -47,6 +49,13 @@ function HelpModal({ onClose }) {
              Real) no usan el árbol: consideran todas las unidades con
              programación registrada. La semana se ancla en <b>sábado</b>, como
              en la aplicación original.</p>
+
+          <h3>Sisfalla</h3>
+          <p>Reportes de fallas del sistema eléctrico. No usa árbol de
+             componentes: filtre por <b>falla</b> (código puntual), <b>agente</b>
+             (texto libre) y/o rango de fechas — todos opcionales. Los
+             reportes del grupo <b>CNDC</b> sólo muestran fallas cuyo informe
+             FINAL o RECTIFICATORIO del CNDC ya fue emitido.</p>
 
           <h3>Tips</h3>
           <ul>
@@ -95,10 +104,11 @@ export default function App() {
           {MODULOS.map((m) => (
             <button key={m.id} aria-pressed={m.id === modulo}
               className={`modtab ${m.id === modulo ? "modtab--active" : ""}`}
-              title={m.label}
+              title={m.beta ? `${m.label} (en desarrollo)` : m.label}
               onClick={() => setModulo(m.id)}>
               <span className="modtab-short">{m.short}</span>
               <span className="modtab-label">{m.label}</span>
+              {m.beta && <span className="modtab-beta">BETA</span>}
             </button>
           ))}
         </nav>
@@ -111,9 +121,10 @@ export default function App() {
         </div>
       </header>
 
-      {/* Ambos módulos permanecen montados para preservar su estado al alternar. */}
+      {/* Los tres módulos permanecen montados para preservar su estado al alternar. */}
       <div className={`modwrap ${modulo === "indisp" ? "" : "modwrap--hidden"}`}><IndispModule /></div>
       <div className={`modwrap ${modulo === "smec" ? "" : "modwrap--hidden"}`}><SmecModule /></div>
+      <div className={`modwrap ${modulo === "sisfalla" ? "" : "modwrap--hidden"}`}><SisfallaModule /></div>
 
       {help && <HelpModal onClose={() => setHelp(false)} />}
     </div>
