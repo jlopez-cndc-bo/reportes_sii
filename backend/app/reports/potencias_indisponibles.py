@@ -22,13 +22,22 @@ from ..sqlutil import in_clause
 MAX_COLUMNAS = 1500
 
 # Expresiones de índice de intervalo reutilizadas (ingreso / salida).
+#
+# El resto de minutos usa CEIL (no TRUNC): el intervalo de 15' que contiene el
+# minuto exacto de ingreso/salida no cuenta como indisponible salvo que el
+# evento lo cubra desde su propio inicio. Con TRUNC, un ingreso a las 09:02
+# marcaba desde las 09:00 (adelantado) y una salida a las 11:40 cortaba en
+# las 11:15 (recortado); con CEIL marcan 09:15 y 11:30 respectivamente,
+# verificado contra SII con los eventos reales de ANG02/AGU01 (2026-10-12).
+# Un ingreso/salida ya alineado a un múltiplo de 15' (resto 0) no se desplaza
+# (CEIL(0/n) = 0).
 _INTER = """
        TRUNC(((24 * 60 / :intervalo) * (TRUNC(hora_ingreso) - TRUNC(:f1)))
              + (TO_CHAR(hora_ingreso, 'HH24') * (60 / :intervalo))
-             + TRUNC((TO_CHAR(hora_ingreso, 'mi')) / :intervalo)) inter_ingreso,
+             + CEIL((TO_CHAR(hora_ingreso, 'mi')) / :intervalo)) inter_ingreso,
        TRUNC(((24 * 60 / :intervalo) * (TRUNC(NVL(hora_salida, SYSDATE)) - TRUNC(:f1)))
              + (TO_CHAR(NVL(hora_salida, SYSDATE), 'HH24') * (60 / :intervalo))
-             + TRUNC((TO_CHAR(NVL(hora_salida, SYSDATE), 'mi')) / :intervalo)) intersalida
+             + CEIL((TO_CHAR(NVL(hora_salida, SYSDATE), 'mi')) / :intervalo)) intersalida
 """
 
 _SUBQ = """
@@ -111,10 +120,9 @@ def _pivot(rows: list[dict[str, Any]], n_cols: int) -> list[dict[str, Any]]:
             if fila is not None:
                 salida.append(fila)
             actual_id = rid
-            base = -1 if r.get("potencia") is None else 0
             fila = {"codigo_objeto": r["codigo_objeto"]}
             for i in range(n_cols):
-                fila[f"I{i}"] = base
+                fila[f"I{i}"] = 0
 
         ini = r.get("inter_ingreso")
         fin = r.get("intersalida")

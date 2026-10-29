@@ -44,13 +44,16 @@ def test_pivot_pinta_rango():
     assert [piv[0][f"I{i}"] for i in range(8)] == [0, 0, 50.0, 50.0, 50.0, 0, 0, 0]
 
 
-def test_pivot_potencia_nula_baseline_negativo():
+def test_pivot_potencia_nula_no_contamina_baseline():
     rows = [{"id_elemento": 7, "codigo_objeto": "GEN1", "potencia": None,
              "inter_ingreso": 1, "intersalida": 2}]
     piv = pind._pivot(rows, 4)
-    # baseline -1 cuando potencia es None; celda pintada con None
-    assert piv[0]["I0"] == -1
+    # baseline siempre 0 (sin evento = disponible); solo la celda del evento
+    # con potencia desconocida queda None (el frontend/export la muestra '-').
+    assert piv[0]["I0"] == 0
     assert piv[0]["I1"] is None
+    assert piv[0]["I2"] == 0
+    assert piv[0]["I3"] == 0
 
 
 def test_pivot_multiple_generadores():
