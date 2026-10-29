@@ -22,8 +22,8 @@ from ..schemas import (
     PotenciasIndisponiblesRequest,
     ProgramacionRequest,
 )
-from .reports import (MAX_DIAS_DIARIO, _guard, _tipos, _validar,
-                      _validar_tipo_prog)
+from .reports import (MAX_DIAS_DIARIO, MAX_DIAS_EVENTOS, _guard, _tipos,
+                      _validar, _validar_tipo_prog)
 
 router = APIRouter(prefix="/api/exportar", tags=["export"])
 
@@ -63,7 +63,7 @@ def exp_potencias_indisponibles(req: PotenciasIndisponiblesRequest):
 
 @router.post("/horas-disponibilidad")
 def exp_horas_disponibilidad(req: HorasDisponibilidadRequest):
-    _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_DIARIO)
+    _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_EVENTOS)
     res = _guard(horas_disponibilidad.report, req.fecha_inicio, req.fecha_fin,
                  req.unidades, req.ip, req.inf)
     return _xlsx_response(res, "Horas de Disponibilidad", req.fecha_inicio, req.fecha_fin)
@@ -71,7 +71,7 @@ def exp_horas_disponibilidad(req: HorasDisponibilidadRequest):
 
 @router.post("/horas-no-disponibilidad")
 def exp_horas_no_disponibilidad(req: HorasNoDisponibilidadRequest):
-    _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_DIARIO)
+    _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_EVENTOS)
     res = _guard(horas_no_disponibilidad.report, req.fecha_inicio, req.fecha_fin,
                  req.unidades, req.ip, req.inf, req.opn, req.plim, req.agregado)
     return _xlsx_response(res, "Horas de No Disponibilidad", req.fecha_inicio, req.fecha_fin)

@@ -26,7 +26,17 @@ from ..tree import get_tree
 
 router = APIRouter(prefix="/api", tags=["indisponibilidades"])
 
-# Tope de días para reportes a resolución diaria (evita consultas patológicas).
+# Tope de días para reportes de detalle/agregado por componente (horas-disponibilidad,
+# horas-no-disponibilidad). La consulta no pivotea por día — una fila por evento o por
+# componente — así que el volumen crece con la cantidad de eventos, no con el rango en
+# días. Se deja un tope generoso sólo como red de seguridad ante selecciones de muchas
+# unidades a la vez.
+MAX_DIAS_EVENTOS = 3650
+
+# Tope de días para horas-tipo-operacion con periodo="dia": ese reporte pivotea una
+# columna por día (y por tipo de operación en modo desagregado), así que el número de
+# columnas sí crece linealmente con el rango — aquí el límite evita tablas de miles de
+# columnas.
 MAX_DIAS_DIARIO = 750
 
 
@@ -106,7 +116,7 @@ def rpt_potencias_indisponibles(req: PotenciasIndisponiblesRequest):
 
 @router.post("/reportes/horas-disponibilidad", response_model=ReportResponse)
 def rpt_horas_disponibilidad(req: HorasDisponibilidadRequest):
-    _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_DIARIO)
+    _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_EVENTOS)
     return _guard(
         horas_disponibilidad.report,
         req.fecha_inicio, req.fecha_fin, req.unidades, req.ip, req.inf,
@@ -115,7 +125,7 @@ def rpt_horas_disponibilidad(req: HorasDisponibilidadRequest):
 
 @router.post("/reportes/horas-no-disponibilidad", response_model=ReportResponse)
 def rpt_horas_no_disponibilidad(req: HorasNoDisponibilidadRequest):
-    _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_DIARIO)
+    _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_EVENTOS)
     return _guard(
         horas_no_disponibilidad.report,
         req.fecha_inicio, req.fecha_fin, req.unidades,
