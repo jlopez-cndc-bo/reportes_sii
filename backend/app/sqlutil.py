@@ -2,6 +2,17 @@
 from typing import Any
 
 
+def limitar_top_n(sql_interior: str, limite: int, maximo: int) -> tuple[str, int]:
+    """Envuelve `sql_interior` (subquery ya con su propio ORDER BY) para
+    acotarla a como máximo `limite` filas, clampeado a `maximo`.
+
+    Usa `SELECT * FROM (...) WHERE ROWNUM <= N` en vez de `FETCH FIRST N
+    ROWS ONLY` (sólo Oracle 12c+): el mismo SQL sirve para 11g y 19c.
+    """
+    limite = max(1, min(limite, maximo))
+    return f"SELECT * FROM ({sql_interior}) WHERE ROWNUM <= {limite}", limite
+
+
 def in_clause(unidades: list[int], prefix: str = "u") -> tuple[str, dict[str, Any]]:
     """Devuelve ("(:u0, :u1, ...)", {u0: .., u1: ..}).
 
