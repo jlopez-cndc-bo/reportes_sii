@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { formatNumber } from "../numFormat";
 
 // Gráfico de líneas SVG sin dependencias, para series temporales SMEC
 // (potencia por intervalo, energía por día/mes/año).
@@ -24,6 +25,7 @@ function niceTicks(min, max, n = 5) {
   return out;
 }
 
+// Sólo para los ticks del eje; el tooltip muestra el valor completo.
 const nf = new Intl.NumberFormat("es-BO", { maximumFractionDigits: 1 });
 
 export default function Chart({ series, labels, unit, omitidas }) {
@@ -71,8 +73,12 @@ export default function Chart({ series, labels, unit, omitidas }) {
     .map((s, si) => ({ name: s.name, v: s.values[hover], color: CHART_COLORS[si] }))
     .filter((t) => typeof t.v === "number")
     .sort((a, b) => b.v - a.v)
-    .slice(0, 6);
-  const tipW = 230, tipH = tip ? 20 + tip.length * 16 : 0;
+    .slice(0, 6)
+    .map((t) => ({ ...t, txt: formatNumber(t.v, "num") }));
+  // El valor se muestra completo (sin redondear): el ancho crece con el más
+  // largo para que no se monte sobre el nombre (~6,5 px por carácter a 11 px).
+  const maxTxt = tip ? Math.max(0, ...tip.map((t) => t.txt.length)) : 0;
+  const tipW = Math.max(230, 170 + Math.ceil(maxTxt * 6.5)), tipH = tip ? 20 + tip.length * 16 : 0;
   const tipX = hover !== null && x(hover) + 12 + tipW > W - M.right + 100
     ? x(hover) - tipW - 12 : (hover !== null ? x(hover) + 12 : 0);
 
@@ -139,7 +145,7 @@ export default function Chart({ series, labels, unit, omitidas }) {
                       {t.name.length > 20 ? t.name.slice(0, 19) + "…" : t.name}
                     </text>
                     <text x={tipW - 20} fontSize="11" textAnchor="end" fill="#0b0b0b"
-                      fontVariant="tabular-nums">{nf.format(t.v)}</text>
+                      fontVariant="tabular-nums">{t.txt}</text>
                   </g>
                 ))}
               </g>

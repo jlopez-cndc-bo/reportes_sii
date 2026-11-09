@@ -75,7 +75,7 @@ def potencia_intervalo(fecha: datetime, ids: list[int], resolucion: str,
     labels = _interval_labels(len(icols))
     columns = [{"key": "nombre", "label": _NOMBRE_NIVEL[nivel].capitalize()}]
     for k, lab in zip(icols, labels):
-        columns.append({"key": k, "label": lab, "format": "0.0"})
+        columns.append({"key": k, "label": lab, "format": "num"})
 
     out = []
     for r in rows:
@@ -135,7 +135,7 @@ def potencia_drill(fecha: datetime, ids: list[int], resolucion: str,
     labels = _interval_labels(len(icols))
     columns = [{"key": "nombre", "label": "Agente / Central / Medidor"}]
     for k, lab in zip(icols, labels):
-        columns.append({"key": k, "label": lab, "format": "0.0"})
+        columns.append({"key": k, "label": lab, "format": "num"})
     return {"table": "POT_DRILL", "columns": columns, "rows": rows}
 
 
@@ -157,7 +157,7 @@ def maximo_periodo(f1: datetime, f2: datetime, ids: list[int],
                {"key": "central", "label": "Central"}]
     for c in daycols:
         dt = datetime.strptime(c[1:], "%Y%m%d")
-        columns.append({"key": c, "label": dt.strftime("%d/%m"), "format": "0.0"})
+        columns.append({"key": c, "label": dt.strftime("%d/%m"), "format": "num"})
     out = []
     for r in rows:
         fila = {"agente": r[ia], "central": r[ic]}
@@ -175,7 +175,7 @@ def maximo_entre_fechas(f1: datetime, f2: datetime, ids: list[int],
     ip, ifch = _idx(cols, "POT_MAX"), _idx(cols, "FECHA")
     columns = [{"key": "agente", "label": "Agente"},
                {"key": "central", "label": "Central"},
-               {"key": "pot_max", "label": "Potencia Máx", "format": "0.0"},
+               {"key": "pot_max", "label": "Potencia Máx", "format": "num"},
                {"key": "fecha", "label": "Fecha/Hora", "format": "datetime"}]
     out = [{"agente": r[ia], "central": r[ic], "pot_max": r[ip], "fecha": r[ifch]}
            for r in rows]
@@ -196,7 +196,7 @@ def energia_dia(f1: datetime, f2: datetime, ids: list[int],
     for c in daycols:
         n = int(c[1:])
         columns.append({"key": c, "label": (f1 + timedelta(days=n)).strftime("%d/%m"),
-                        "format": "0.0"})
+                        "format": "num"})
     out = []
     for r in rows:
         fila = {"agente": r[ia], "central": r[ic]}
@@ -258,7 +258,7 @@ def energia_mes(f1: datetime, f2: datetime, ids: list[int],
         mes = f_ini.month - 1 + i
         y = f_ini.year + mes // 12
         columns.append({"key": f"m{i}", "label": f"{mes % 12 + 1:02d}/{y}",
-                        "format": "0.0"})
+                        "format": "num"})
     out = []
     for r in filas:
         fila = {"agente": r.get("nombre_agente"), "central": r.get("nombre_central")}
@@ -307,7 +307,7 @@ def energia_anio(f1: datetime, f2: datetime, ids: list[int],
     columns = [{"key": "agente", "label": "Agente"},
                {"key": "central", "label": "Central"}]
     for i in range(num + 1):
-        columns.append({"key": f"a{i}", "label": str(f_ini.year + i), "format": "0.0"})
+        columns.append({"key": f"a{i}", "label": str(f_ini.year + i), "format": "num"})
     out = []
     for r in filas:
         fila = {"agente": r.get("nombre_agente"), "central": r.get("nombre_central")}
@@ -379,8 +379,8 @@ def factor_carga(f1: datetime, f2: datetime, ids: list[int],
     columns = [
         {"key": "agente", "label": "Agente"},
         {"key": "central", "label": "Central"},
-        {"key": "energia", "label": "Energía (kWh)", "format": "0.0"},
-        {"key": "pot_max", "label": "Pot. Máx (kW)", "format": "0.0"},
+        {"key": "energia", "label": "Energía (kWh)", "format": "num"},
+        {"key": "pot_max", "label": "Pot. Máx (kW)", "format": "num"},
         {"key": "horas", "label": "Horas"},
         {"key": "factor", "label": "Factor de carga", "format": "0.00"},
     ]

@@ -4,6 +4,7 @@ Reproduce el estilo del export de la app original: título combinado, encabezado
 resaltado, paneles congelados y formatos numéricos/fecha por columna.
 """
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from io import BytesIO
 from typing import Any
 
@@ -22,6 +23,25 @@ def _num_format(fmt: str | None) -> str | None:
     if fmt and fmt.startswith("0."):
         return "#,##0." + "0" * (len(fmt.split(".")[1]))
     return None
+
+
+def _num_format_exacto(v: Any) -> str | None:
+    """Formato para columnas "num" (valor tal cual viene de la BD): miles y
+    exactamente los decimales que trae el valor, sin redondear ni rellenar.
+    Se decide por celda porque un formato fijo tipo "#,##0.###" deja la coma
+    decimal colgando en los enteros."""
+    if isinstance(v, bool) or not isinstance(v, (int, float, Decimal)):
+        return None
+    try:
+        # normalize(): 12.0 se muestra "12", igual que en la grilla web.
+        d = Decimal(repr(v) if isinstance(v, float) else str(v))
+        exp = d.normalize().as_tuple().exponent
+    except InvalidOperation:
+        return None
+    if not isinstance(exp, int):  # NaN / infinito
+        return None
+    dec = max(0, -exp)
+    return "#,##0" + ("." + "0" * dec if dec else "")
 
 
 def _llenar_hoja(ws, result: dict[str, Any], titulo: str) -> None:
@@ -58,7 +78,10 @@ def _llenar_hoja(ws, result: dict[str, Any], titulo: str) -> None:
                 except ValueError:
                     pass
             cell = ws.cell(row=r, column=j, value=v)
-            nf = fmt_by_col[j - 1]
+            if c.get("format") == "num":
+                nf = _num_format_exacto(v)
+            else:
+                nf = fmt_by_col[j - 1]
             if nf and v is not None:
                 cell.number_format = nf
         r += 1

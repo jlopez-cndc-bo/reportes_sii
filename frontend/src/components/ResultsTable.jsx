@@ -1,15 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatNumber, isNumericFmt, sumaLimpia } from "../numFormat";
 
 // Filas renderizadas inicialmente; con cientos de columnas (hasta 673 en
 // Potencias Indisponibles) el DOM crece rápido, así que se pagina el render.
 const PAGE = 300;
-
-const nf = (dec) =>
-  new Intl.NumberFormat("es-BO", { minimumFractionDigits: dec, maximumFractionDigits: dec });
-
-function isNumericFmt(fmt) {
-  return fmt && fmt !== "datetime" && /^0\.0+$/.test(fmt);
-}
 
 function fmt(value, format) {
   if (value === null || value === undefined) return "-";
@@ -20,7 +14,7 @@ function fmt(value, format) {
     return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
   }
   if (isNumericFmt(format) && typeof value === "number") {
-    return nf(format.split(".")[1].length).format(value);
+    return formatNumber(value, format);
   }
   return String(value);
 }
@@ -104,7 +98,7 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
     const t = {};
     for (const c of cols) {
       if (isNumericFmt(c.format)) {
-        t[c.key] = base.reduce((s, r) => s + (typeof r[c.key] === "number" ? r[c.key] : 0), 0);
+        t[c.key] = sumaLimpia(base.map((r) => r[c.key]));
       }
     }
     return t;

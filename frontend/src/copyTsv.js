@@ -1,6 +1,8 @@
 // Copia un resultado tabular al portapapeles como TSV, pegable directo en
 // Excel con configuración regional española (decimal con coma, sin miles).
 
+import { formatNumberPlain, isNumericFmt } from "./numFormat";
+
 function cell(v, format) {
   if (v === null || v === undefined) return "";
   if (format === "datetime") {
@@ -9,8 +11,8 @@ function cell(v, format) {
     const p = (n) => String(n).padStart(2, "0");
     return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
   }
-  if (format && /^0\.0+$/.test(format) && typeof v === "number") {
-    return v.toFixed(format.split(".")[1].length).replace(".", ",");
+  if (isNumericFmt(format) && typeof v === "number") {
+    return formatNumberPlain(v, format);
   }
   return String(v).replace(/[\t\r\n]+/g, " ");
 }
