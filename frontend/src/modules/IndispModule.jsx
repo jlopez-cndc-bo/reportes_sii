@@ -9,6 +9,7 @@ import { collectIds, allKeys, toggleNode, countLeaves } from "../treeUtils";
 import { isoDaysAgo } from "../dateUtils";
 import { copyResultTsv } from "../copyTsv";
 import { usePersisted, usePersistedSet } from "../usePersisted";
+import { Rail, QueryPanel, QSec, ResultBar, fechaCorta } from "../shell";
 
 export default function IndispModule() {
   const [fechaInicio, setFechaInicio] = useState(isoDaysAgo(7));
@@ -117,39 +118,67 @@ export default function IndispModule() {
     ? "Sin selección requerida"
     : `${seleccionados} componente(s) seleccionado(s)`;
 
+  const pick = (id) => { setActiveId(id); setResult(null); setError(null); };
+  const rango = activeReport.soloFecha
+    ? fechaCorta(fechaInicio)
+    : `${fechaCorta(fechaInicio)} al ${fechaCorta(fechaFin)}`;
+
   return (
     <div className="layout">
-      <aside className="sidebar">
-        <section className="panel">
-          <h2>{activeReport.soloFecha ? "Fecha" : "Rango de fechas"}</h2>
-          <label className="field"><span>{activeReport.soloFecha ? "Fecha" : "Inicio"}</span>
-            <input type="date" value={fechaInicio} max={activeReport.soloFecha ? undefined : fechaFin} onKeyDown={onKey} onChange={(e) => setFechaInicio(e.target.value)} /></label>
-          {!activeReport.soloFecha && (
-            <label className="field"><span>Final</span>
-              <input type="date" value={fechaFin} min={fechaInicio} onKeyDown={onKey} onChange={(e) => setFechaFin(e.target.value)} /></label>
-          )}
+      <Rail grupos={GRUPOS} reports={REPORTS} activeId={activeReport.id} onPick={pick} />
+
+      <QueryPanel
+        title={`${activeReport.grupo} › ${activeReport.label}`}
+        desc={<p>{activeReport.descripcion}</p>}
+        resumen={activeReport.sinArbol ? rango : `${rango}, ${seleccionados} componente(s)`}
+        estado={estadoSeleccion} listo={puedeGenerar}
+        onGenerar={generar} running={running} puedeGenerar={puedeGenerar}
+        footer={<>
+          <button className="btn btn--primary" onClick={generar}
+            disabled={running || !puedeGenerar}
+            title={!puedeGenerar ? "Seleccione al menos un componente para generar el reporte." : undefined}>
+            {running ? "Generando…" : "Generar reporte"}</button>
+          <button className="btn" onClick={exportar}
+            disabled={exporting || (!activeReport.sinArbol && (treeLoading || seleccionados === 0))}>
+            {exporting ? "Exportando…" : "Exportar a Excel"}</button>
+        </>}>
+        <QSec title={activeReport.soloFecha ? "Fecha" : "Fechas"}>
+          <div className="dates">
+            <label className="dfield"><span>{activeReport.soloFecha ? "Fecha" : "Inicio"}</span>
+              <input type="date" value={fechaInicio} max={activeReport.soloFecha ? undefined : fechaFin} onKeyDown={onKey} onChange={(e) => setFechaInicio(e.target.value)} /></label>
+            {!activeReport.soloFecha && (
+              <label className="dfield"><span>Final</span>
+                <input type="date" value={fechaFin} min={fechaInicio} onKeyDown={onKey} onChange={(e) => setFechaFin(e.target.value)} /></label>
+            )}
+          </div>
           <DatePresets single={activeReport.soloFecha}
             onPick={(ini, fin) => { setFechaInicio(ini); if (!activeReport.soloFecha) setFechaFin(fin); }} />
-        </section>
-        <section className="panel panel--tree">
+        </QSec>
+
+        {activeReport.options && activeReport.options.length > 0 && (
+          <QSec title="Opciones">
+            <OptionsPanel options={activeReport.options} values={optState[activeReport.id]}
+              onChange={(v) => setOptState((s) => ({ ...s, [activeReport.id]: v }))} />
+          </QSec>
+        )}
+
+        <QSec title="Componentes" className="qsec--tree"
+          aside={<span className="qsec-count">{seleccionados} seleccionado(s)</span>}>
           {activeReport.sinArbol && (
             <div className="tree-note">
               Este reporte no usa el árbol: considera todas las unidades con
               programación registrada.
             </div>
           )}
-          <div className="panel-head">
-            <h2>Componentes</h2>
-            <div className="tree-actions">
-              <button onClick={() => setAll(true)}>Todos</button>
-              <button onClick={() => setAll(false)}>Ninguno</button>
-              <button onClick={cargarArbol} title="Recargar">↻</button>
-            </div>
+          <div className="tree-tools">
+            <input className="tree-search" type="search" placeholder="Buscar componente…" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
+            <button type="button" className="pill-btn" onClick={() => setAll(true)}>Todos</button>
+            <button type="button" className="pill-btn" onClick={() => setAll(false)}>Ninguno</button>
+            <button type="button" className="pill-btn pill-btn--icon" onClick={cargarArbol} title="Recargar el árbol" aria-label="Recargar el árbol">↻</button>
           </div>
-          <input className="tree-search" type="search" placeholder="Buscar componente…" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
           <div className="tree-count">
-            {seleccionados} seleccionado(s) · {totales.todos} componente(s) vigente(s) a hoy
-            {treeLoading && tree.length > 0 && <span className="tree-refresh"> · actualizando…</span>}
+            {totales.todos} componente(s) vigente(s) a hoy
+            {treeLoading && tree.length > 0 && <span className="tree-refresh">, actualizando…</span>}
           </div>
           {treeError && <div className="tree-error">{treeError}</div>}
           {tree.length === 0
@@ -157,65 +186,14 @@ export default function IndispModule() {
             : <div className={`tree-wrap ${treeLoading ? "tree-wrap--refreshing" : ""}`}>
                 <Tree nodes={visibleTree} checked={checked} onToggle={onToggle} filter={filtro} />
               </div>}
-        </section>
-      </aside>
+        </QSec>
+      </QueryPanel>
 
       <main className="content">
-        <nav className="tabs tabs--grouped">
-          {GRUPOS.map((g) => (
-            <div className="tab-group" key={g}>
-              <span className="tab-group-label">{g}</span>
-              {REPORTS.filter((r) => r.grupo === g).map((r) => (
-                <button key={r.id} className={`tab ${r.id === activeReport.id ? "tab--active" : ""}`}
-                  onClick={() => { setActiveId(r.id); setResult(null); setError(null); }}>{r.label}</button>
-              ))}
-            </div>
-          ))}
-        </nav>
-
-        <div className="report-head">
-          <div>
-            <h2 className="rpt-title">{activeReport.grupo} › {activeReport.label}</h2>
-            <p className="rpt-hint">{activeReport.descripcion}</p>
-          </div>
-          <span className={`selection-chip ${puedeGenerar ? "selection-chip--ready" : ""}`}>
-            {estadoSeleccion}
-          </span>
-        </div>
-
-        <div className="controls">
-          <div className="controls-left">
-            <OptionsPanel options={activeReport.options} values={optState[activeReport.id]}
-              onChange={(v) => setOptState((s) => ({ ...s, [activeReport.id]: v }))} />
-          </div>
-          <div className="controls-right">
-            <button className="btn btn--primary" onClick={generar}
-              disabled={running || !puedeGenerar}
-              title={!puedeGenerar ? "Seleccione al menos un componente para generar el reporte." : undefined}>
-              {running ? "Generando…" : "Generar reporte"}</button>
-            <button className="btn" onClick={exportar}
-              disabled={exporting || (!activeReport.sinArbol && (treeLoading || seleccionados === 0))}>
-              {exporting ? "Exportando…" : "Exportar a Excel"}</button>
-            {result && result.rows.length > 0 && (
-              <div className="result-actions">
-                <label className="totals-toggle">
-                  <input type="checkbox" checked={showTotals} onChange={(e) => setShowTotals(e.target.checked)} /> Totales
-                </label>
-                <button className="btn btn--compact" onClick={copiar} title="Copiar la tabla al portapapeles para pegarla en Excel">
-                  {copied ? "Copiado" : "Copiar"}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        {error && <div className="error-box">{error}</div>}
+        {error && <div className="error-box" role="alert">{error}</div>}
         {result && result.aviso && <div className="warn-box">⚠ {result.aviso}</div>}
-        {result && result.rows.length > 0 && (
-          <div className="result-meta">
-            {result.rows.length} fila(s) · {result.columns.filter((c) => !c.hidden).length} columna(s)
-            {generadoEn && <> · generado {generadoEn.toLocaleTimeString("es-BO")}</>}
-          </div>
-        )}
+        <ResultBar result={result} generadoEn={generadoEn}
+          showTotals={showTotals} setShowTotals={setShowTotals} copied={copied} onCopiar={copiar} />
         <ResultsTable result={result} loading={running} showTotals={showTotals}
           placeholder="Marque componentes en el árbol y pulse «Generar reporte»."
           emptyHint="Sin datos para el rango/selección. Verifique el rango de fechas y los componentes marcados." />

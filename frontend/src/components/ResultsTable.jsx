@@ -105,7 +105,7 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
   }, [showTotals, result, cols, drill]);
 
   if (loading) {
-    return <div className="results-state"><span className="spinner" /> Generando reporte…</div>;
+    return <div className="results-state" role="status"><span className="spinner" /> Generando reporte…</div>;
   }
   if (!result) {
     return <div className="results-state results-state--muted">{placeholder || "Configure los filtros y pulse «Generar reporte»."}</div>;
@@ -176,7 +176,8 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
                   const numeric = c.format && c.format !== "datetime";
                   const v = row[c.key];
                   const neg = numeric && typeof v === "number" && v < 0;
-                  const cls = [idx === 0 ? "sticky-col" : "", numeric ? "num" : "", neg ? "neg" : ""]
+                  const cls = [idx === 0 ? "sticky-col" : "", numeric ? "num" : "", neg ? "neg" : "",
+                    numeric && v === 0 ? "zero" : ""]
                     .filter(Boolean).join(" ");
                   if (drill && idx === 0) {
                     return (

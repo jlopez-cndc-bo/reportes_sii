@@ -7,6 +7,7 @@ import DatePresets from "../components/DatePresets";
 import FallaSearchModal from "../components/FallaSearchModal";
 import { copyResultTsv } from "../copyTsv";
 import { usePersisted } from "../usePersisted";
+import { Rail, QueryPanel, QSec, ResultBar, fechaCorta } from "../shell";
 
 export default function SisfallaModule() {
   const GRUPOS = useMemo(() => [...new Set(SISFALLA_REPORTS.map((r) => r.grupo))], []);
@@ -78,125 +79,106 @@ export default function SisfallaModule() {
     } catch (e) { setError(`No se pudo copiar: ${e.message}`); }
   };
 
+  const pick = (id) => { setActiveId(id); setResult(null); setError(null); };
+  const resumen = activeReport.sinFiltros ? "sin filtros"
+    : [filtros.codFalla && `falla ${filtros.codFalla}`,
+       filtros.agente && `agente ${filtros.agente}`,
+       !gestionActiva && filtros.desde && `desde ${fechaCorta(filtros.desde)}`,
+       !gestionActiva && filtros.hasta && `hasta ${fechaCorta(filtros.hasta)}`,
+       opt.gestion && `gestión ${opt.gestion}`].filter(Boolean).join(", ") || "sin filtros";
+
   return (
     <div className="layout">
-      <aside className="sidebar">
-        <section className="panel panel--filtros">
-          <h2>Filtros</h2>
+      <Rail grupos={GRUPOS} reports={SISFALLA_REPORTS} activeId={activeReport.id} onPick={pick} />
+
+      <QueryPanel
+        title={`${activeReport.grupo} › ${activeReport.label}`}
+        desc={<>
+          <p>{activeReport.descripcion}</p>
+          {activeReport.reglaCndc && (
+            <p>
+              Sólo incluye fallas cuyo informe final o rectificatorio del CNDC ya fue
+              emitido: un rango sin ninguna falla en ese estado da 0 filas aunque el
+              filtro funcione.
+            </p>
+          )}
+        </>}
+        resumen={resumen}
+        estado={estadoFiltro} listo
+        onGenerar={generar} running={running} puedeGenerar={puedeGenerar}
+        footer={<>
+          <button className="btn btn--primary" onClick={generar} disabled={running}>
+            {running ? "Generando…" : "Generar reporte"}</button>
+          <button className="btn" onClick={exportar} disabled={exporting}>
+            {exporting ? "Exportando…" : "Exportar a Excel"}</button>
+        </>}>
+        <QSec title="Filtros">
           {activeReport.sinFiltros ? (
             <div className="tree-note">Este reporte no acepta filtros: siempre trae todo.</div>
           ) : (
-            <>
+            <div className="filtros">
               {campos.codFalla && (
-                <label className="field"><span>Falla</span>
+                <label className="dfield"><span>Falla</span>
                   <div className="field-with-action">
-                    <input type="text" placeholder="nro/gestión, ej. 247/2026" value={filtros.codFalla} onKeyDown={onKey}
+                    <input type="text" placeholder="247/2026" value={filtros.codFalla} onKeyDown={onKey}
                       title="Formato: nro/gestión, ej. 247/2026 o 0247-26"
                       onChange={(e) => setFiltro("codFalla", e.target.value)} />
-                    <button type="button" className="mini-btn" onClick={() => setBuscandoFalla(true)}
-                      title="Buscar falla por código o descripción">🔎 Buscar</button>
+                    <button type="button" className="pill-btn" onClick={() => setBuscandoFalla(true)}
+                      title="Buscar falla por código o descripción">Buscar falla</button>
                   </div>
-                  <small className="field-hint">Formato: nro/gestión, ej. 247/2026 — o use «Buscar»</small>
+                  <small className="field-hint">Número y gestión, por ejemplo 247/2026.</small>
                 </label>
               )}
               {campos.agente && (
-                <label className="field"><span>Agente</span>
-                  <input type="text" placeholder="sigla o nombre" value={filtros.agente} onKeyDown={onKey}
+                <label className="dfield"><span>Agente</span>
+                  <input type="text" placeholder="Sigla o nombre" value={filtros.agente} onKeyDown={onKey}
                     onChange={(e) => setFiltro("agente", e.target.value)} /></label>
               )}
-              {campos.desde && (
-                <label className="field" title={gestionActiva ? "No aplica: la gestión (año) ya reemplaza el rango de fechas." : undefined}>
-                  <span>Desde</span>
-                  <input type="date" value={filtros.desde} max={filtros.hasta || undefined} disabled={gestionActiva}
-                    onKeyDown={onKey} onChange={(e) => setFiltro("desde", e.target.value)} /></label>
-              )}
-              {campos.hasta && (
-                <label className="field" title={gestionActiva ? "No aplica: la gestión (año) ya reemplaza el rango de fechas." : undefined}>
-                  <span>Hasta</span>
-                  <input type="date" value={filtros.hasta} min={filtros.desde || undefined} disabled={gestionActiva}
-                    onKeyDown={onKey} onChange={(e) => setFiltro("hasta", e.target.value)} /></label>
+              {(campos.desde || campos.hasta) && (
+                <div className="dates" title={gestionActiva ? "No aplica: la gestión (año) ya reemplaza el rango de fechas." : undefined}>
+                  {campos.desde && (
+                    <label className="dfield"><span>Desde</span>
+                      <input type="date" value={filtros.desde} max={filtros.hasta || undefined} disabled={gestionActiva}
+                        onKeyDown={onKey} onChange={(e) => setFiltro("desde", e.target.value)} /></label>
+                  )}
+                  {campos.hasta && (
+                    <label className="dfield"><span>Hasta</span>
+                      <input type="date" value={filtros.hasta} min={filtros.desde || undefined} disabled={gestionActiva}
+                        onKeyDown={onKey} onChange={(e) => setFiltro("hasta", e.target.value)} /></label>
+                  )}
+                </div>
               )}
               {campos.desde && campos.hasta && !gestionActiva && (
                 <DatePresets onPick={(ini, fin) => { setFiltro("desde", ini); setFiltro("hasta", fin); }} />
               )}
-              {activeReport.options && activeReport.options.length > 0 && (
-                <div className="opt-group">
-                  <OptionsPanel
-                    options={activeReport.options}
-                    values={{ ...opt, _codFalla: filtros.codFalla }}
-                    onChange={(v) => {
-                      const { _codFalla, ...rest } = v;
-                      setOptState((s) => ({ ...s, [activeReport.id]: rest }));
-                    }}
-                  />
-                </div>
-              )}
-            </>
+            </div>
           )}
-          <div className="tree-note">
-            Todos los filtros son opcionales. Sin ninguno, el reporte trae
-            todos los registros disponibles (puede ser un volumen grande).
-          </div>
-        </section>
-      </aside>
+        </QSec>
+
+        {!activeReport.sinFiltros && activeReport.options && activeReport.options.length > 0 && (
+          <QSec title="Opciones">
+            <OptionsPanel
+              options={activeReport.options}
+              values={{ ...opt, _codFalla: filtros.codFalla }}
+              onChange={(v) => {
+                const { _codFalla, ...rest } = v;
+                setOptState((s) => ({ ...s, [activeReport.id]: rest }));
+              }}
+            />
+          </QSec>
+        )}
+
+        <div className="tree-note">
+          Todos los filtros son opcionales. Sin ninguno, el reporte trae
+          todos los registros disponibles (puede ser un volumen grande).
+        </div>
+      </QueryPanel>
 
       <main className="content">
-        <nav className="tabs tabs--grouped">
-          {GRUPOS.map((g) => (
-            <div className="tab-group" key={g}>
-              <span className="tab-group-label">{g}</span>
-              {SISFALLA_REPORTS.filter((r) => r.grupo === g).map((r) => (
-                <button key={r.id} className={`tab ${r.id === activeReport.id ? "tab--active" : ""}`}
-                  onClick={() => { setActiveId(r.id); setResult(null); setError(null); }}>{r.label}</button>
-              ))}
-            </div>
-          ))}
-        </nav>
-
-        <div className="report-head">
-          <div>
-            <h2 className="rpt-title">{activeReport.grupo} › {activeReport.label}</h2>
-            <p className="rpt-hint">{activeReport.descripcion}</p>
-            {activeReport.reglaCndc && (
-              <p className="rpt-hint">
-                Sólo incluye fallas cuyo informe FINAL o RECTIFICATORIO del CNDC ya fue
-                emitido — un rango sin ninguna falla en ese estado da 0 filas aunque el
-                filtro funcione.
-              </p>
-            )}
-          </div>
-          <span className={`selection-chip ${puedeGenerar ? "selection-chip--ready" : ""}`}>
-            {estadoFiltro}
-          </span>
-        </div>
-
-        <div className="controls">
-          <div className="controls-left" />
-          <div className="controls-right">
-            <button className="btn btn--primary" onClick={generar} disabled={running}>
-              {running ? "Generando…" : "Generar reporte"}</button>
-            <button className="btn" onClick={exportar} disabled={exporting}>
-              {exporting ? "Exportando…" : "Exportar a Excel"}</button>
-            {result && result.rows.length > 0 && (
-              <div className="result-actions">
-                <label className="totals-toggle">
-                  <input type="checkbox" checked={showTotals} onChange={(e) => setShowTotals(e.target.checked)} /> Totales
-                </label>
-                <button className="btn btn--compact" onClick={copiar} title="Copiar la tabla al portapapeles para pegarla en Excel">
-                  {copied ? "Copiado" : "Copiar"}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        {error && <div className="error-box">{error}</div>}
+        {error && <div className="error-box" role="alert">{error}</div>}
         {result && result.aviso && <div className="warn-box">⚠ {result.aviso}</div>}
-        {result && result.rows.length > 0 && (
-          <div className="result-meta">
-            {result.rows.length} fila(s) · {result.columns.filter((c) => !c.hidden).length} columna(s)
-            {generadoEn && <> · generado {generadoEn.toLocaleTimeString("es-BO")}</>}
-          </div>
-        )}
+        <ResultBar result={result} generadoEn={generadoEn}
+          showTotals={showTotals} setShowTotals={setShowTotals} copied={copied} onCopiar={copiar} />
         <ResultsTable result={result} loading={running} showTotals={showTotals}
           placeholder="Cargue los filtros que necesite (o ninguno) y pulse «Generar reporte»."
           emptyHint="Sin datos para este filtro/rango." />

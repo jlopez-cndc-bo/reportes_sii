@@ -8,6 +8,7 @@ import { collectIds, allKeys, toggleNode } from "../treeUtils";
 import { isoDaysAgo as iso } from "../dateUtils";
 import { copyResultTsv } from "../copyTsv";
 import { usePersisted, usePersistedSet } from "../usePersisted";
+import { Rail, QueryPanel, QSec, ResultBar, fechaCorta } from "../shell";
 
 const SMEC_REPORTS = [
   { grupo: "Potencia", id: "potencia_15min", label: "15 Minutos", interval: true, fin: false },
@@ -155,136 +156,113 @@ export default function SmecModule() {
              labels: numCols.map((c) => c.label) };
   }, [result, report.id]);
 
+  const pick = (id) => { setTipo(id); setResult(null); setError(null); };
+  const dirLabel = direccion === "iny" ? "Inyección" : "Retiro";
+  const rango = report.fin
+    ? `${fechaCorta(fechaInicio)} al ${fechaCorta(fechaFin)}`
+    : fechaCorta(fechaInicio);
+
   return (
     <div className="layout">
-      <aside className="sidebar">
-        <section className="panel">
-          <h2>Fechas</h2>
-          <label className="field"><span>{report.fin ? "Inicio" : "Fecha"}</span>
-            <input type="date" value={fechaInicio} max={report.fin ? fechaFin : hoy} onKeyDown={onKey} onChange={(e) => setFechaInicio(e.target.value)} /></label>
-          {report.fin && (
-            <label className="field"><span>Final</span>
-              <input type="date" value={fechaFin} min={fechaInicio} max={hoy} onKeyDown={onKey} onChange={(e) => setFechaFin(e.target.value)} /></label>
-          )}
+      <Rail grupos={GRUPOS} reports={SMEC_REPORTS} activeId={report.id} onPick={pick} />
+
+      <QueryPanel
+        title={`${report.grupo} › ${report.label}`}
+        desc={<p>Centrales de {dirLabel}, valores en {unidad}.</p>}
+        resumen={`${rango}, ${dirLabel}, ${idsSel.length} central(es)`}
+        estado={`${idsSel.length} central(es) seleccionada(s)`} listo={puedeGenerar}
+        onGenerar={generar} running={running} puedeGenerar={puedeGenerar}
+        footer={<>
+          <button className="btn btn--primary" onClick={generar} disabled={running || !puedeGenerar}
+            title={!puedeGenerar ? "Seleccione al menos una central para generar el reporte." : undefined}>
+            {running ? "Generando…" : "Generar reporte"}</button>
+          <button className="btn" onClick={exportar}
+            disabled={exporting || treeLoading || (!(conjunto && puedeConjunto) && idsSel.length === 0)}>
+            {exporting ? "Exportando…" : conjunto && puedeConjunto ? "Exportar (2 hojas)" : "Exportar a Excel"}</button>
+        </>}>
+        <QSec title={report.fin ? "Fechas" : "Fecha"}>
+          <div className="dates">
+            <label className="dfield"><span>{report.fin ? "Inicio" : "Fecha"}</span>
+              <input type="date" value={fechaInicio} max={report.fin ? fechaFin : hoy} onKeyDown={onKey} onChange={(e) => setFechaInicio(e.target.value)} /></label>
+            {report.fin && (
+              <label className="dfield"><span>Final</span>
+                <input type="date" value={fechaFin} min={fechaInicio} max={hoy} onKeyDown={onKey} onChange={(e) => setFechaFin(e.target.value)} /></label>
+            )}
+          </div>
           <DatePresets single={!report.fin}
             onPick={(ini, fin) => { setFechaInicio(ini); if (report.fin) setFechaFin(fin); }} />
-        </section>
-        <section className="panel">
-          <h2>Dirección</h2>
-          <div className="opt-radios">
-            <button type="button" aria-pressed={direccion === "iny"} className={`seg ${direccion === "iny" ? "seg--on" : ""}`} onClick={() => setDireccion("iny")}>Inyección</button>
-            <button type="button" aria-pressed={direccion === "ret"} className={`seg ${direccion === "ret" ? "seg--on" : ""}`} onClick={() => setDireccion("ret")}>Retiro</button>
-          </div>
-        </section>
-        <section className="panel panel--tree">
-          <div className="panel-head">
-            <h2>Centrales ({direccion === "iny" ? "Inyección" : "Retiro"})</h2>
-            <div className="tree-actions">
-              <button onClick={() => setAll(true)}>Todos</button>
-              <button onClick={() => setAll(false)}>Ninguno</button>
-              <button onClick={cargarArbol} title="Recargar">↻</button>
+        </QSec>
+
+        <QSec title="Opciones">
+          <div className="options">
+            <div className="opt-group">
+              <span className="opt-title">Dirección</span>
+              <div className="opt-radios">
+                <button type="button" aria-pressed={direccion === "iny"} className={`seg ${direccion === "iny" ? "seg--on" : ""}`} onClick={() => setDireccion("iny")}>Inyección</button>
+                <button type="button" aria-pressed={direccion === "ret"} className={`seg ${direccion === "ret" ? "seg--on" : ""}`} onClick={() => setDireccion("ret")}>Retiro</button>
+              </div>
             </div>
-          </div>
-          <input className="tree-search" type="search" placeholder="Buscar central/agente…" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
-          <div className="tree-count">{idsSel.length} central(es) seleccionada(s)</div>
-          {treeLoading ? <div className="tree-empty">Cargando…</div>
-            : treeError ? <div className="tree-error">{treeError}</div>
-            : <Tree nodes={visibleTree} checked={checked} onToggle={onToggle} filter={filtro} />}
-        </section>
-      </aside>
-
-      <main className="content">
-        <nav className="tabs tabs--grouped">
-          {GRUPOS.map((g) => (
-            <div className="tab-group" key={g}>
-              <span className="tab-group-label">{g}</span>
-              {SMEC_REPORTS.filter((r) => r.grupo === g).map((r) => (
-                <button key={r.id} className={`tab ${r.id === report.id ? "tab--active" : ""}`}
-                  onClick={() => { setTipo(r.id); setResult(null); setError(null); }}>{r.label}</button>
-              ))}
-            </div>
-          ))}
-        </nav>
-
-        <div className="report-head">
-          <div>
-            <h2 className="rpt-title">{report.grupo} › {report.label}</h2>
-            <p className="rpt-hint">
-              {report.interval ? "Elija el nivel, marque " : "Marque "}
-              centrales de {direccion === "iny" ? "Inyección" : "Retiro"} en el árbol
-              y pulse «Generar reporte».
-            </p>
-          </div>
-          <span className={`selection-chip ${puedeGenerar ? "selection-chip--ready" : ""}`}>
-            {idsSel.length} central(es) seleccionada(s)
-          </span>
-        </div>
-
-        <div className="controls">
-          <div className="controls-left">
-            <div className="options">
-              {report.interval && (
-                <div className="opt-group">
-                  <span className="opt-title">Nivel</span>
-                  <div className="opt-radios">
-                    {[["agente", "Agente"], ["central", "Central"], ["medidor", "Medidor"],
-                      ["drill", "Árbol"]].map(([n, lbl]) => (
-                      <button key={n} type="button" aria-pressed={nivel === n}
-                        title={n === "drill" ? "Grilla jerárquica Agente → Central → Medidor" : undefined}
-                        className={`seg ${nivel === n ? "seg--on" : ""}`} onClick={() => setNivel(n)}>
-                        {lbl}</button>
-                    ))}
-                  </div>
+            {report.interval && (
+              <div className="opt-group opt-group--stack">
+                <span className="opt-title">Nivel</span>
+                <div className="opt-radios">
+                  {[["agente", "Agente"], ["central", "Central"], ["medidor", "Medidor"],
+                    ["drill", "Árbol"]].map(([n, lbl]) => (
+                    <button key={n} type="button" aria-pressed={nivel === n}
+                      title={n === "drill" ? "Grilla jerárquica Agente → Central → Medidor" : undefined}
+                      className={`seg ${nivel === n ? "seg--on" : ""}`} onClick={() => setNivel(n)}>
+                      {lbl}</button>
+                  ))}
                 </div>
-              )}
-            </div>
-          </div>
-          <div className="controls-right">
-            <button className="btn btn--primary" onClick={generar} disabled={running || !puedeGenerar}
-              title={!puedeGenerar ? "Seleccione al menos una central para generar el reporte." : undefined}>
-              {running ? "Generando…" : "Generar reporte"}</button>
-            <button className="btn" onClick={exportar}
-              disabled={exporting || treeLoading || (!(conjunto && puedeConjunto) && idsSel.length === 0)}>
-              {exporting ? "Exportando…" : conjunto && puedeConjunto ? "Exportar (2 hojas)" : "Exportar a Excel"}</button>
+              </div>
+            )}
             {puedeConjunto && (
-              <label className="totals-toggle" title="Un solo archivo con hoja Inyección + hoja Retiro, con todas las centrales de cada dirección (no depende de la selección del árbol).">
-                <input type="checkbox" checked={conjunto} onChange={(e) => setConjunto(e.target.checked)} /> Conjunto (Iny.+Ret.)
+              <label className="opt-check opt-check--wide" title="Un solo archivo con hoja Inyección + hoja Retiro, con todas las centrales de cada dirección (no depende de la selección del árbol).">
+                <input type="checkbox" checked={conjunto} onChange={(e) => setConjunto(e.target.checked)} />
+                Exportar Inyección y Retiro en un solo archivo
               </label>
             )}
           </div>
-        </div>
+        </QSec>
 
-        {error && <div className="error-box">{error}</div>}
-        {result && result.aviso && <div className="warn-box">⚠ {result.aviso}</div>}
-        {result && result.rows.length > 0 && (
-          <div className="result-meta">
-            {result.rows.length} fila(s) · {result.columns.filter((c) => !c.hidden).length} columna(s)
-            · {direccion === "iny" ? "Inyección" : "Retiro"} · valores en {unidad}
-            {generadoEn && <> · generado {generadoEn.toLocaleTimeString("es-BO")}</>}
-            <label className="totals-toggle">
-              <input type="checkbox" checked={showTotals} onChange={(e) => setShowTotals(e.target.checked)} /> Totales
-            </label>
-            <button className="mini-btn" onClick={copiar} title="Copiar la tabla al portapapeles para pegarla en Excel">
-              {copied ? "✓ Copiado" : "Copiar"}
-            </button>
-            {chartData && (
-              <span className="vista-toggle">
-                <button type="button" aria-pressed={vista === "tabla"}
-                  className={`seg ${vista === "tabla" ? "seg--on" : ""}`}
-                  onClick={() => setVista("tabla")}>Tabla</button>
-                <button type="button" aria-pressed={vista === "grafico"}
-                  className={`seg ${vista === "grafico" ? "seg--on" : ""}`}
-                  onClick={() => setVista("grafico")}>Gráfico</button>
-              </span>
-            )}
+        <QSec title={`Centrales de ${dirLabel}`} className="qsec--tree"
+          aside={<span className="qsec-count">{idsSel.length} seleccionada(s)</span>}>
+          <div className="tree-tools">
+            <input className="tree-search" type="search" placeholder="Buscar central o agente…" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
+            <button type="button" className="pill-btn" onClick={() => setAll(true)}>Todos</button>
+            <button type="button" className="pill-btn" onClick={() => setAll(false)}>Ninguno</button>
+            <button type="button" className="pill-btn pill-btn--icon" onClick={cargarArbol} title="Recargar el árbol" aria-label="Recargar el árbol">↻</button>
           </div>
-        )}
+          {treeLoading ? <div className="tree-empty">Cargando…</div>
+            : treeError ? <div className="tree-error">{treeError}</div>
+            : <div className="tree-wrap">
+                <Tree nodes={visibleTree} checked={checked} onToggle={onToggle} filter={filtro} />
+              </div>}
+        </QSec>
+      </QueryPanel>
+
+      <main className="content">
+        {error && <div className="error-box" role="alert">{error}</div>}
+        {result && result.aviso && <div className="warn-box">⚠ {result.aviso}</div>}
+        <ResultBar result={result} generadoEn={generadoEn} extra={`${dirLabel}, valores en ${unidad}`}
+          showTotals={showTotals} setShowTotals={setShowTotals} copied={copied} onCopiar={copiar}>
+          {chartData && (
+            <span className="vista-toggle">
+              <button type="button" aria-pressed={vista === "tabla"}
+                className={`seg ${vista === "tabla" ? "seg--on" : ""}`}
+                onClick={() => setVista("tabla")}>Tabla</button>
+              <button type="button" aria-pressed={vista === "grafico"}
+                className={`seg ${vista === "grafico" ? "seg--on" : ""}`}
+                onClick={() => setVista("grafico")}>Gráfico</button>
+            </span>
+          )}
+        </ResultBar>
         {vista === "grafico" && chartData && !running ? (
           <Chart series={chartData.series} labels={chartData.labels}
             unit={unidad} omitidas={chartData.omitidas} />
         ) : (
           <ResultsTable result={result} loading={running} showTotals={showTotals}
-            placeholder={`Marque centrales de ${direccion === "iny" ? "Inyección" : "Retiro"} y pulse «Generar reporte».`}
+            placeholder={`Marque centrales de ${dirLabel} y pulse «Generar reporte».`}
             emptyHint="Sin datos para esta fecha/selección. Verifique la fecha, la dirección y las centrales marcadas." />
         )}
       </main>

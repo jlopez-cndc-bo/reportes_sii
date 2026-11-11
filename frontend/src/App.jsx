@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "./api";
 import IndispModule from "./modules/IndispModule";
 import SmecModule from "./modules/SmecModule";
 import SisfallaModule from "./modules/SisfallaModule";
-import cndcLogo from "./assets/cndc-logo-naranja.png";
+import { ShellContext } from "./shell";
+import { usePersisted } from "./usePersisted";
 
 const MODULOS = [
-  { id: "indisp", label: "Indisponibilidades", short: "INDISP" },
-  { id: "smec", label: "SMEC", short: "SMEC" },
-  { id: "sisfalla", label: "Sisfalla", short: "SISFALLA", beta: true },
+  { id: "indisp", label: "Indisponibilidades" },
+  { id: "smec", label: "SMEC" },
+  { id: "sisfalla", label: "Sisfalla", beta: true },
 ];
 
 function HelpModal({ onClose }) {
@@ -88,45 +89,27 @@ export default function App() {
     try { localStorage.setItem("modulo", modulo); } catch {}
   }, [modulo]);
 
-  const oracleOk = health && health.oracle === "conectado";
+  // Paneles comprimibles: se recuerda entre sesiones y es común a los módulos.
+  const [railOpen, setRailOpen] = usePersisted("ui.railOpen", window.innerWidth >= 1400);
+  const [queryOpen, setQueryOpen] = usePersisted("ui.queryOpen", true);
+
+  const shell = useMemo(() => ({
+    modulos: MODULOS, modulo, setModulo, health,
+    openHelp: () => setHelp(true),
+    railOpen, toggleRail: () => setRailOpen((o) => !o),
+    queryOpen, toggleQuery: () => setQueryOpen((o) => !o),
+  }), [modulo, health, railOpen, queryOpen, setRailOpen, setQueryOpen]);
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand-lockup">
-          <img className="brand-logo" src={cndcLogo} alt="CNDC — Comité Nacional de Despacho de Carga" />
-          <div>
-            <h1>Reportes SII</h1>
-            <span className="subtitle">Consulta operativa</span>
-          </div>
-        </div>
-        <nav className="modtabs">
-          {MODULOS.map((m) => (
-            <button key={m.id} aria-pressed={m.id === modulo}
-              className={`modtab ${m.id === modulo ? "modtab--active" : ""}`}
-              title={m.beta ? `${m.label} (en desarrollo)` : m.label}
-              onClick={() => setModulo(m.id)}>
-              <span className="modtab-short">{m.short}</span>
-              <span className="modtab-label">{m.label}</span>
-              {m.beta && <span className="modtab-beta">BETA</span>}
-            </button>
-          ))}
-        </nav>
-        <div className="topbar-actions">
-          <span className={`badge ${oracleOk ? "badge--ok" : "badge--warn"}`}>
-            <span className="badge-dot" aria-hidden="true" />
-            Oracle: {health ? health.oracle : "…"}
-          </span>
-          <button className="help-btn" onClick={() => setHelp(true)} title="Ayuda" aria-label="Ayuda">?</button>
-        </div>
-      </header>
+    <ShellContext.Provider value={shell}>
+      <div className="app">
+        {/* Los tres módulos permanecen montados para preservar su estado al alternar. */}
+        <div className={`modwrap ${modulo === "indisp" ? "" : "modwrap--hidden"}`}><IndispModule /></div>
+        <div className={`modwrap ${modulo === "smec" ? "" : "modwrap--hidden"}`}><SmecModule /></div>
+        <div className={`modwrap ${modulo === "sisfalla" ? "" : "modwrap--hidden"}`}><SisfallaModule /></div>
 
-      {/* Los tres módulos permanecen montados para preservar su estado al alternar. */}
-      <div className={`modwrap ${modulo === "indisp" ? "" : "modwrap--hidden"}`}><IndispModule /></div>
-      <div className={`modwrap ${modulo === "smec" ? "" : "modwrap--hidden"}`}><SmecModule /></div>
-      <div className={`modwrap ${modulo === "sisfalla" ? "" : "modwrap--hidden"}`}><SisfallaModule /></div>
-
-      {help && <HelpModal onClose={() => setHelp(false)} />}
-    </div>
+        {help && <HelpModal onClose={() => setHelp(false)} />}
+      </div>
+    </ShellContext.Provider>
   );
 }
