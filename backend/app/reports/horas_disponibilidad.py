@@ -54,8 +54,8 @@ def report(
     rows = query(sql, binds)
     columns = [
         {"key": "codigo_objeto", "label": "Componente"},
-        {"key": "horas", "label": "Disponibilidad (%)", "format": "0.0"},
-        {"key": "hora_desconectadas", "label": "Horas Desconectadas", "format": "0.0"},
-        {"key": "total", "label": "Horas Periodo", "format": "0.0"},
+        {"key": "horas", "label": "Disponibilidad (%)", "format": "0.00"},
+        {"key": "hora_desconectadas", "label": "Horas Desconectadas", "format": "0.00"},
+        {"key": "total", "label": "Horas Periodo", "format": "0.00"},
     ]
     return {"table": "DIA", "columns": columns, "rows": rows}

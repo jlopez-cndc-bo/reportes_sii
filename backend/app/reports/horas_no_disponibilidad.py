@@ -103,11 +103,11 @@ def report(
         {"key": "hora_ingreso", "label": "Hora Ingreso", "format": "datetime"},
         {"key": "hora_salida", "label": "Hora Salida", "format": "datetime"},
         {"key": "id_tipo_operacion", "label": "Tipo Operación"},
-        {"key": "hora_desconectadas", "label": "Horas Desconectadas", "format": "0.0"},
+        {"key": "hora_desconectadas", "label": "Horas Desconectadas", "format": "0.00"},
         {"key": "causa", "label": "Causa"},
         {"key": "restric_gas", "label": "Restric Gas?"},
-        {"key": "potencia_limitada", "label": "Pot. Lim", "format": "0.0"},
-        {"key": "horas", "label": "Disponibilidad (%)", "format": "0.0", "hidden": True},
-        {"key": "total", "label": "Horas Periodo", "format": "0.0", "hidden": True},
+        {"key": "potencia_limitada", "label": "Pot. Lim", "format": "0.00"},
+        {"key": "horas", "label": "Disponibilidad (%)", "format": "0.00", "hidden": True},
+        {"key": "total", "label": "Horas Periodo", "format": "0.00", "hidden": True},
     ]
     return {"table": "DIA", "columns": columns, "rows": rows}

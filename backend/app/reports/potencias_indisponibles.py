@@ -143,7 +143,7 @@ def _columnas(f1: datetime, n_cols: int, intervalo: int) -> list[dict[str, Any]]
     for i in range(n_cols):
         muestra_fecha = (t - timedelta(minutes=intervalo)).day != t.day
         label = t.strftime("%d/%m/%Y %H:%M") if muestra_fecha else t.strftime("%H:%M")
-        cols.append({"key": f"I{i}", "label": label, "format": "0.0"})
+        cols.append({"key": f"I{i}", "label": label, "format": "0.00"})
         t += timedelta(minutes=intervalo)
     return cols
 

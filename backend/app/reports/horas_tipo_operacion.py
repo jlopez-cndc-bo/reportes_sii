@@ -134,7 +134,7 @@ def report(
         else:
             col_defs.append((key, hdr))
     for col, hdr in col_defs:
-        columns.append({"key": col, "label": hdr, "format": "0.0"})
+        columns.append({"key": col, "label": hdr, "format": "0.00"})
 
     # Armar filas rellenando 0 donde no hay dato.
     filas: list[dict[str, Any]] = []
