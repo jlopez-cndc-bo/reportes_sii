@@ -136,14 +136,17 @@ def potencia_limitada(f1: datetime, f2: datetime) -> dict[str, Any]:
         {"key": "desde", "label": "Desde", "format": "datetime"},
         {"key": "hasta", "label": "Hasta", "format": "datetime"},
         {"key": "horas", "label": "Horas", "format": "0.00"},
-        {"key": "limite", "label": "Límite (MW)", "format": "num", "sinTotal": True},
         {"key": "efectiva", "label": "Pot. efectiva (MW)", "format": "num", "sinTotal": True},
+        {"key": "limite", "label": "Límite (MW)", "format": "num", "sinTotal": True},
         {"key": "reduccion", "label": "Reducción (MW)", "format": "num", "sinTotal": True},
-        {"key": "pct_efectiva", "label": "Límite % efectiva", "format": "0.0", "sinTotal": True},
+        {"key": "pct_efectiva", "label": "Límite (% efectiva)", "format": "0.0", "sinTotal": True},
         {"key": "medido", "label": "Máx. medido (MW)", "format": "num", "sinTotal": True},
         {"key": "causa", "label": "Causa"},
     ]
     return {"table": "POT_LIMITADA", "columns": columns, "rows": out,
             "aviso": "Pot. efectiva: tabla semestral del CNDC (desde 01/11/2026). "
-                     "Máx. medido: sólo unidades con medidor propio en SMEC. "
-                     "Sin dato concreto, la celda queda vacía."}
+                     "Máx. medido: medidor propio de la unidad en SMEC, convertido a MW; "
+                     "se mide en bloques de 15 min, así que en eventos cortos incluye "
+                     "minutos de antes o después del evento. "
+                     "Sin dato concreto, la celda muestra «-». "
+                     "El TOTAL de Horas suma las horas de todos los eventos."}

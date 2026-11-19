@@ -55,7 +55,10 @@ function HelpModal({ onClose }) {
           <p><b>Pico diario</b>: para cada día, el intervalo de 15 min con la
              mayor inyección total del SIN y el aporte de las centrales marcadas
              (las demás van en «Resto»). <b>Conciliación</b>: inyección menos
-             retiro por día, es decir, pérdidas y desbalance de medición.</p>
+             retiro por día, es decir, pérdidas y desbalance de medición.
+             <b> Potencia limitada</b>: cada evento de limitación con su límite
+             frente a la potencia efectiva de la unidad y a lo que midió su
+             medidor propio.</p>
 
           <h3>SMEC · Nivel «Árbol»</h3>
           <p>En Potencia 15 min/Hora, el nivel <b>Árbol</b> muestra una grilla

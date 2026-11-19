@@ -31,6 +31,8 @@ const SMEC_REPORTS = [
     soloIny: true, arbolOpcional: true },
   { grupo: "SIN", id: "conciliacion", label: "Conciliación", interval: false, fin: true,
     sinArbol: true, unidad: "kWh" },
+  { grupo: "SIN", id: "potencia_limitada", label: "Potencia limitada", interval: false, fin: true,
+    sinArbol: true, unidad: "MW" },
 ];
 const GRUPOS = ["Potencia", "Energía", "Índices", "SIN"];
 // Más columnas que esto en el pico diario hace la tabla difícil de leer.
@@ -176,7 +178,7 @@ export default function SmecModule() {
   const puedeGenerar = !treeLoading && (idsSel.length > 0 || !requiereSeleccion);
   // Textos del SIN: el modo (kW / %) es el de la consulta generada, no el del selector.
   const descSin = (pct) => (report.id === "pico_sin"
-    ? `Todo el SIN (inyección), valores en ${pct ? "% del pico" : "kW"}` : "Todo el SIN, valores en kWh");
+    ? `Todo el SIN (inyección), valores en ${pct ? "% del pico" : "kW"}` : `Todo el SIN, valores en ${unidad}`);
   const estadoSin = report.sinArbol ? "Sin selección requerida"
     : idsSel.length ? `${idsSel.length} central(es) a desglosar` : "Solo total del SIN";
 
