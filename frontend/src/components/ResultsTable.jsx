@@ -5,6 +5,10 @@ import { Chevron } from "../icons";
 // Filas renderizadas inicialmente; con cientos de columnas (hasta 673 en
 // Potencias Indisponibles) el DOM crece rápido, así que se pagina el render.
 const PAGE = 300;
+// Tope de celdas renderizadas: 300 filas × 673 columnas (Potencias
+// Indisponibles) ya se dibuja bien. shortcut: estimado, no medido en el
+// equipo más lento; ajustar si «Mostrar más» se siente pesado.
+const MAX_CELDAS = 200_000;
 
 function fmt(value, format) {
   if (value === null || value === undefined) return "-";
@@ -32,6 +36,7 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
   }, [result]);
 
   const cols = result ? result.columns.filter((c) => !c.hidden) : [];
+  const maxFilas = Math.max(PAGE, Math.floor(MAX_CELDAS / Math.max(1, cols.length)));
   // Modo drill-down: filas planas en orden de árbol con _nivel (0/1/2).
   const drill = !!(result && result.rows.length > 0 && result.rows[0]._nivel !== undefined);
 
@@ -133,8 +138,16 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
         {view.length > limit && (
           <div className="results-page-actions">
             <span>Mostrando {limit.toLocaleString("es-BO")} de {view.length.toLocaleString("es-BO")}</span>
-            <button className="mini-btn" onClick={() => setLimit((l) => l + PAGE * 2)}>Mostrar más</button>
-            <button className="mini-btn" onClick={() => setLimit(view.length)}>Mostrar todas</button>
+            {limit < maxFilas ? (
+              <>
+                <button type="button" className="mini-btn" onClick={() => setLimit((l) => Math.min(l + PAGE * 2, maxFilas))}>Mostrar más</button>
+                {view.length <= maxFilas && (
+                  <button type="button" className="mini-btn" onClick={() => setLimit(view.length)}>Mostrar todas</button>
+                )}
+              </>
+            ) : (
+              <span>Para ver todas las filas, use «Copiar» o exporte a Excel.</span>
+            )}
           </div>
         )}
         {drill && (
