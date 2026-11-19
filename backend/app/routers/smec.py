@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 
 from ..export_excel import build_workbook, build_workbook_multi
 from ..schemas import ReportResponse, SmecReporteRequest
-from ..smec import capacidad, estructura, sistema
+from ..smec import capacidad, estructura, potencia_limitada, sistema
 from ..smec import reportes as R
 
 router = APIRouter(prefix="/api/smec", tags=["smec"])
@@ -28,6 +28,7 @@ _TITULOS = {
     "mix_tecnologia": "Mix por tecnología",
     "pico_sin": "Pico del SIN por día",
     "conciliacion": "Conciliación inyección-retiro",
+    "potencia_limitada": "Potencia limitada",
 }
 
 
@@ -81,6 +82,8 @@ def _despachar(req: SmecReporteRequest):
         return sistema.pico_sin(f1, f2, ids, req.porcentaje)
     if t == "conciliacion":
         return sistema.conciliacion(f1, f2)
+    if t == "potencia_limitada":
+        return potencia_limitada.potencia_limitada(f1, f2)
     raise ValueError(f"Tipo de reporte SMEC desconocido: {t}")
 
 
