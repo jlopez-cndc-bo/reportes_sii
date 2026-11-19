@@ -8,7 +8,7 @@ env:
   NODE_VERSION: "20"
   DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/reportes-sii' }}
   DEPLOY_SERVICE: ${{ vars.DEPLOY_SERVICE || 'reportes-sii' }}
-  DEPLOY_RUN_USER: ${{ vars.DEPLOY_RUN_USER || 'reportes' }}
+  DEPLOY_RUN_USER: ${{ vars.DEPLOY_RUN_USER || 'administrador' }}
 
 jobs:
   build-test-package:

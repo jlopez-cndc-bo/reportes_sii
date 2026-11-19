@@ -7,7 +7,7 @@ set -euo pipefail
 PKG="${1:-}"
 DEPLOY_PATH="${DEPLOY_PATH:-/opt/reportes-sii}"
 DEPLOY_SERVICE="${DEPLOY_SERVICE:-reportes-sii}"
-DEPLOY_RUN_USER="${DEPLOY_RUN_USER:-reportes}"
+DEPLOY_RUN_USER="${DEPLOY_RUN_USER:-administrador}"
 STAGE="/tmp/reportes-sii-web-manual-$$"
 
 if [ -z "$PKG" ]; then

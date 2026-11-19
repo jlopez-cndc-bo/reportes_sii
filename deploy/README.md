@@ -114,7 +114,7 @@ Configurar en GitHub → Settings → Secrets and variables → Actions → Vari
 |---|---|
 | `DEPLOY_PATH` | `/opt/reportes-sii` |
 | `DEPLOY_SERVICE` | `reportes-sii` |
-| `DEPLOY_RUN_USER` | `reportes` |
+| `DEPLOY_RUN_USER` | `administrador` |
 
 El archivo `backend/.env` debe crearse una sola vez en el servidor y no se sube
 a GitHub. El pipeline falla explícitamente si no existe.
