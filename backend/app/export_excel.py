@@ -44,7 +44,7 @@ def _num_format_exacto(v: Any) -> str | None:
     return "#,##0" + ("." + "0" * dec if dec else "")
 
 
-def _llenar_hoja(ws, result: dict[str, Any], titulo: str) -> None:
+def _llenar_hoja(ws, result: dict[str, Any], titulo: str, totales: bool = False) -> None:
     cols = [c for c in result["columns"] if not c.get("hidden")]
     ncols = len(cols)
     # Fila 1: título combinado.
@@ -86,6 +86,9 @@ def _llenar_hoja(ws, result: dict[str, Any], titulo: str) -> None:
                 cell.number_format = nf
         r += 1
 
+    if totales and result["rows"]:
+        _fila_total(ws, cols, result["rows"], header_row + 1, r)
+
     # Anchos aproximados.
     for j, c in enumerate(cols, start=1):
         width = max(10, min(40, len(str(c["label"])) + 2))
@@ -95,24 +98,64 @@ def _llenar_hoja(ws, result: dict[str, Any], titulo: str) -> None:
     ws.freeze_panes = ws.cell(row=header_row + 1, column=2)
 
 
-def build_workbook(result: dict[str, Any], titulo: str) -> BytesIO:
+def _es_sumable(c: dict[str, Any]) -> bool:
+    f = c.get("format")
+    return bool(f) and f != "datetime" and not c.get("sinTotal")
+
+
+def _suma_limpia(vals) -> float:
+    """Suma sin ruido binario: no más decimales que el sumando que más trae
+    (misma regla que sumaLimpia en el frontend)."""
+    nums = [v for v in vals if isinstance(v, (int, float)) and not isinstance(v, bool)]
+    dec = 0
+    for v in nums:
+        t = repr(float(v))
+        dec = max(dec, 10 if "e" in t else len(t.split(".")[1].rstrip("0")))
+    return round(sum(nums), min(dec, 10))
+
+
+def _fila_total(ws, cols, rows, first: int, r: int) -> None:
+    """Fila TOTAL con fórmulas SUMA, mismas reglas que la grilla web: no suma
+    columnas `sinTotal` y en grillas jerárquicas (`_nivel`) sólo el nivel 0."""
+    drill = rows[0].get("_nivel") is not None
+    # shortcut: SUMA admite 255 argumentos; en drill son los agentes (decenas).
+    filas = [first + i for i, row in enumerate(rows) if not drill or row.get("_nivel") == 0]
+    ws.cell(row=r, column=1, value="TOTAL").font = Font(bold=True)
+    for j, c in enumerate(cols, start=1):
+        if j == 1 or not _es_sumable(c):
+            continue
+        L = get_column_letter(j)
+        rango = f"{L}{first}:{L}{r - 1}" if not drill else ",".join(f"{L}{i}" for i in filas)
+        cell = ws.cell(row=r, column=j, value=f"=SUM({rango})")
+        cell.font = Font(bold=True)
+        if c.get("format") == "num":
+            vals = [rows[i - first].get(c["key"]) for i in filas]
+            nf = _num_format_exacto(_suma_limpia(vals))
+        else:
+            nf = _num_format(c.get("format"))
+        if nf:
+            cell.number_format = nf
+
+
+def build_workbook(result: dict[str, Any], titulo: str, totales: bool = False) -> BytesIO:
     wb = Workbook()
     ws = wb.active
     ws.title = (result.get("table") or "Reporte")[:31]
-    _llenar_hoja(ws, result, titulo)
+    _llenar_hoja(ws, result, titulo, totales)
     buf = BytesIO()
     wb.save(buf)
     buf.seek(0)
     return buf
 
 
-def build_workbook_multi(hojas: list[tuple[str, dict[str, Any], str]]) -> BytesIO:
+def build_workbook_multi(hojas: list[tuple[str, dict[str, Any], str]],
+                         totales: bool = False) -> BytesIO:
     """Un workbook con una hoja por elemento de `hojas`: (nombre, result, titulo)."""
     wb = Workbook()
     wb.remove(wb.active)
     for nombre, result, titulo in hojas:
         ws = wb.create_sheet(nombre[:31])
-        _llenar_hoja(ws, result, titulo)
+        _llenar_hoja(ws, result, titulo, totales)
     buf = BytesIO()
     wb.save(buf)
     buf.seek(0)

@@ -68,7 +68,9 @@ def _indicadores(fila: dict, keys: list[str], labels: list[str]) -> None:
         fila.update({c["key"]: None for c in _COLS_INDICADORES})
         return
     dt = 24 / len(keys)
-    r10 = lambda x: round(x, 10)  # noqa: E731 — sólo limpia ruido de punto flotante
+    # Sólo limpia ruido de punto flotante: la base trae ≤ 4 decimales y ×0,25 h
+    # suma 2; con 10 el ruido sobrevivía en energías de millones (como _total).
+    r10 = lambda x: round(x, 6)  # noqa: E731
     vmax, hmax = max(pares, key=lambda p: p[0])
     vmin, hmin = min(pares, key=lambda p: p[0])
     bruta = sum(v for v, _ in pares if v > 0) * dt
@@ -79,7 +81,7 @@ def _indicadores(fila: dict, keys: list[str], labels: list[str]) -> None:
         if vals[i] is not None and vals[i - 1] is not None:
             d = vals[i] - vals[i - 1]
             if rampa is None or abs(d) > abs(rampa):
-                rampa, hrampa = d, labels[i]
+                rampa, hrampa = round(d, 6), labels[i]
     fila.update(
         pot_max=vmax, hora_max=hmax, pot_min=vmin, hora_min=hmin,
         promedio=r10(sum(v for v, _ in pares) / len(pares)),

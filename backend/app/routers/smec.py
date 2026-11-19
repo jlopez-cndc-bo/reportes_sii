@@ -149,7 +149,7 @@ def exportar(req: SmecReporteRequest):
     dir_lbl = "Inyeccion" if req.direccion == "iny" else "Retiro"
     label = _TITULOS.get(req.tipo, req.tipo)
     titulo = f"SMEC · {label} ({dir_lbl}) — desde {ini}"
-    buf = build_workbook(res, titulo)
+    buf = build_workbook(res, titulo, totales=True)
     fname = f"SMEC_{label.replace(' ', '_')}_{dir_lbl}_{ini}.xlsx"
     headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"}
     return StreamingResponse(buf, media_type=_XLSX, headers=headers)
@@ -190,7 +190,7 @@ def exportar_conjunto(req: SmecReporteRequest):
         titulo = f"SMEC · {label} ({nombre_hoja}) — desde {ini}"
         hojas.append((nombre_hoja, res, titulo))
 
-    buf = build_workbook_multi(hojas)
+    buf = build_workbook_multi(hojas, totales=True)
     fname = f"SMEC_{label.replace(' ', '_')}_Conjunto_{ini}.xlsx"
     headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"}
     return StreamingResponse(buf, media_type=_XLSX, headers=headers)

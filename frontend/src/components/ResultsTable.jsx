@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatNumber, isNumericFmt, sumaLimpia } from "../numFormat";
+import { formatNumber, isNumericFmt, calcTotales } from "../numFormat";
 import { Chevron } from "../icons";
 
 // Filas renderizadas inicialmente; con cientos de columnas (hasta 673 en
@@ -91,19 +91,9 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
     return out;
   }, [drill, rows, expanded, q, cols]);
 
-  const totales = useMemo(() => {
-    if (!showTotals || !result) return null;
-    // En modo jerárquico sólo suman los agentes (nivel 0): las hijas
-    // repetirían los mismos valores.
-    const base = drill ? result.rows.filter((r) => r._nivel === 0) : result.rows;
-    const t = {};
-    for (const c of cols) {
-      if (isNumericFmt(c.format) && !c.sinTotal) {
-        t[c.key] = sumaLimpia(base.map((r) => r[c.key]));
-      }
-    }
-    return t;
-  }, [showTotals, result, cols, drill]);
+  const totales = useMemo(
+    () => (showTotals && result ? calcTotales(result) : null),
+    [showTotals, result]);
 
   if (loading) {
     return <div className="results-state" role="status"><span className="spinner" /> Generando reporte…</div>;

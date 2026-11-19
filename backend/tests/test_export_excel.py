@@ -51,3 +51,33 @@ def test_build_workbook_multi_una_hoja_por_direccion():
     assert wb["Retiro"].cell(row=1, column=1).value == "Título Ret"
     # Cada hoja arranca de cero (no hereda la hoja 'Sheet' por defecto).
     assert wb["Inyección"].cell(row=3, column=1).value == "x"
+
+
+def test_fila_total_suma_por_periodo_y_respeta_sin_total():
+    res = {"table": "E", "columns": [
+        {"key": "c", "label": "Central"},
+        {"key": "d0", "label": "01/10", "format": "num"},
+        {"key": "p", "label": "Part. %", "format": "0.0", "sinTotal": True}],
+        "rows": [{"c": "A", "d0": 1.5, "p": 60.0}, {"c": "B", "d0": 1, "p": 40.0}]}
+    ws = load_workbook(build_workbook(res, "T", totales=True))["E"]
+    assert ws.cell(row=5, column=1).value == "TOTAL"
+    assert ws.cell(row=5, column=2).value == "=SUM(B3:B4)"
+    assert ws.cell(row=5, column=3).value is None
+    # Sin totales pedidos (INDISP/SISFALLA) no hay fila extra.
+    ws = load_workbook(build_workbook(res, "T"))["E"]
+    assert ws.cell(row=5, column=1).value is None
+
+
+def test_fila_total_drill_suma_solo_nivel_0():
+    res = {"table": "POT_DRILL", "columns": [
+        {"key": "n", "label": "Nombre"}, {"key": "h0", "label": "00:15", "format": "num"}],
+        "rows": [{"n": "AG1", "h0": 10, "_nivel": 0}, {"n": "C1", "h0": 10, "_nivel": 1},
+                 {"n": "AG2", "h0": 5, "_nivel": 0}]}
+    ws = load_workbook(build_workbook(res, "T", totales=True))["POT_DRILL"]
+    assert ws.cell(row=6, column=2).value == "=SUM(B3,B5)"
+
+
+def test_suma_limpia_sin_ruido_en_millones():
+    from app.export_excel import _suma_limpia
+    assert _suma_limpia([11011701.555, 11011701.555, 11011701.555]) == 33035104.665
+    assert _suma_limpia([1, 2, None, "x"]) == 3

@@ -15,7 +15,7 @@ def test_indicadores_con_servicio_local_y_nulos():
     f = _fila(-2.0, 50.0, None, 10.0)
     assert (f["pot_max"], f["hora_max"]) == (50.0, "06:00")
     assert (f["pot_min"], f["hora_min"]) == (-2.0, "00:00")
-    assert f["promedio"] == 19.3333333333
+    assert f["promedio"] == 19.333333
     assert f["completitud"] == 75.0
     assert f["energia_bruta"] == 360.0      # (50 + 10) × 6 h
     assert f["servicio_local"] == -12.0     # -2 × 6 h
@@ -73,3 +73,13 @@ def test_energia_enriquecida_participacion_y_variacion():
     assert z["total_ant"] is None and z["var"] is None
     assert llamadas[1] == datetime(2025, 1, 1)
     assert [c["key"] for c in res["columns"]] == ["part", "total_ant", "var"]
+
+
+def test_respuesta_api_conserva_banderas_de_columna():
+    # El response_model descartaba resumen/sinTotal: la grilla sumaba Part. %
+    # y el gráfico tomaba Total como un período.
+    from app.schemas import ReportResponse
+    r = ReportResponse(table="T", rows=[], columns=[
+        {"key": "part", "label": "Part. %", "format": "0.0", "resumen": True, "sinTotal": True}])
+    c = r.model_dump()["columns"][0]
+    assert c["resumen"] is True and c["sinTotal"] is True

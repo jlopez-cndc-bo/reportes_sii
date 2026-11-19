@@ -1,7 +1,7 @@
 // Copia un resultado tabular al portapapeles como TSV, pegable directo en
 // Excel con configuración regional española (decimal con coma, sin miles).
 
-import { formatNumberPlain, isNumericFmt } from "./numFormat";
+import { formatNumberPlain, isNumericFmt, calcTotales } from "./numFormat";
 
 function cell(v, format) {
   if (v === null || v === undefined) return "";
@@ -17,7 +17,7 @@ function cell(v, format) {
   return String(v).replace(/[\t\r\n]+/g, " ");
 }
 
-export async function copyResultTsv(result) {
+export async function copyResultTsv(result, { totales = false } = {}) {
   const cols = result.columns.filter((c) => !c.hidden);
   const lines = [cols.map((c) => c.label).join("\t")];
   for (const r of result.rows) {
@@ -26,6 +26,10 @@ export async function copyResultTsv(result) {
       // Grillas jerárquicas: sangría por nivel en la primera columna.
       return i === 0 && r._nivel ? "    ".repeat(r._nivel) + v : v;
     }).join("\t"));
+  }
+  if (totales && result.rows.length > 0) {
+    const t = calcTotales(result);
+    lines.push(cols.map((c, i) => (i === 0 ? "TOTAL" : c.key in t ? cell(t[c.key], c.format) : "")).join("\t"));
   }
   const text = lines.join("\r\n");
 

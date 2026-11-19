@@ -70,6 +70,10 @@ class ReportColumn(BaseModel):
     label: str
     format: str | None = None
     hidden: bool = False
+    # Indicador por fila (Total, Máx, Part. %…): no es un período del gráfico.
+    resumen: bool = False
+    # La fila TOTAL no lo suma (máximos, porcentajes, factores).
+    sinTotal: bool = False
 
 
 class ReportResponse(BaseModel):

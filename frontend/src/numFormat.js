@@ -41,10 +41,35 @@ export function formatNumberPlain(value, format) {
   return formateador("en-US", format, { useGrouping: false }).format(value).replace(".", ",");
 }
 
-// Suma de valores ya exactos: quita sólo el ruido binario de la suma en
-// punto flotante (p. ej. 0,1 + 0,2 = 0,30000000000000004).
+// Suma de valores ya exactos: quita el ruido binario de la suma en punto
+// flotante (0,1 + 0,2 = 0,30000000000000004; con totales de millones el ruido
+// aparece antes del décimo decimal). El resultado no puede tener más
+// decimales que el sumando que más trae.
+const decimales = (v) => {
+  const s = String(v);
+  if (s.includes("e")) return 10;
+  const i = s.indexOf(".");
+  return i < 0 ? 0 : s.length - i - 1;
+};
 export function sumaLimpia(valores) {
-  let s = 0;
-  for (const v of valores) if (typeof v === "number") s += v;
-  return Number(s.toFixed(10));
+  let s = 0, dec = 0;
+  for (const v of valores) {
+    if (typeof v !== "number") continue;
+    s += v;
+    dec = Math.max(dec, decimales(v));
+  }
+  return Number(s.toFixed(Math.min(dec, 10)));
+}
+
+// Fila TOTAL: suma cada columna numérica salvo las `sinTotal`. En grillas
+// jerárquicas sólo suman los agentes (nivel 0): las hijas repetirían valores.
+export function calcTotales(result) {
+  const cols = result.columns.filter((c) => !c.hidden);
+  const drill = result.rows.length > 0 && result.rows[0]._nivel !== undefined;
+  const base = drill ? result.rows.filter((r) => r._nivel === 0) : result.rows;
+  const t = {};
+  for (const c of cols) {
+    if (isNumericFmt(c.format) && !c.sinTotal) t[c.key] = sumaLimpia(base.map((r) => r[c.key]));
+  }
+  return t;
 }

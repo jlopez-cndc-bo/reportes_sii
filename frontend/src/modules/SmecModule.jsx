@@ -60,7 +60,8 @@ export default function SmecModule() {
   const [running, setRunning] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
-  const [showTotals, setShowTotals] = useState(false);
+  // Fila TOTAL por período visible por defecto en SMEC (se recuerda si se oculta).
+  const [showTotals, setShowTotals] = usePersisted("smec.totales", true);
   const [generadoEn, setGeneradoEn] = useState(null);
   const [copied, setCopied] = useState(false);
   const [vista, setVista] = useState("tabla");
@@ -152,7 +153,7 @@ export default function SmecModule() {
 
   const copiar = async () => {
     try {
-      await copyResultTsv(vistaResult);
+      await copyResultTsv(vistaResult, { totales: showTotals });
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch (e) { setError(`No se pudo copiar: ${e.message}`); }
