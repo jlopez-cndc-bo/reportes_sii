@@ -181,7 +181,7 @@ class SmecReporteRequest(BaseModel):
             "Uno de: 'potencia_15min', 'potencia_hora', 'potencia_max_diario', "
             "'potencia_max_entre_fechas', 'energia_dia', 'energia_mes', "
             "'energia_anio', 'factor_dia', 'factor_periodo', 'capacidad_sistema', "
-            "'mix_tecnologia'."
+            "'mix_tecnologia', 'pico_sin', 'conciliacion'."
         ),
         examples=["potencia_hora"],
     )
@@ -211,6 +211,8 @@ class SmecReporteRequest(BaseModel):
             "'anio' (un año antes)."
         ),
     )
+    porcentaje: bool = Field(
+        False, description="Sólo pico_sin: aporte de cada central en % del total del SIN.")
 
 
 # ─────────────────────────────── SISFALLA ───────────────────────────────

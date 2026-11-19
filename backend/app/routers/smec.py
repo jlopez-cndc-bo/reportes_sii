@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 
 from ..export_excel import build_workbook, build_workbook_multi
 from ..schemas import ReportResponse, SmecReporteRequest
-from ..smec import capacidad, estructura
+from ..smec import capacidad, estructura, sistema
 from ..smec import reportes as R
 
 router = APIRouter(prefix="/api/smec", tags=["smec"])
@@ -26,6 +26,8 @@ _TITULOS = {
     "factor_periodo": "Factor de carga - Periodo",
     "capacidad_sistema": "Capacidad por sistema",
     "mix_tecnologia": "Mix por tecnología",
+    "pico_sin": "Pico del SIN por día",
+    "conciliacion": "Conciliación inyección-retiro",
 }
 
 
@@ -75,6 +77,10 @@ def _despachar(req: SmecReporteRequest):
         return capacidad.capacidad_sistema(f1, f2, ids, d)
     if t == "mix_tecnologia":
         return capacidad.mix_tecnologia(f1, f2, ids, d)
+    if t == "pico_sin":
+        return sistema.pico_sin(f1, f2, ids, req.porcentaje)
+    if t == "conciliacion":
+        return sistema.conciliacion(f1, f2)
     raise ValueError(f"Tipo de reporte SMEC desconocido: {t}")
 
 
@@ -84,6 +90,9 @@ def _validar(req: SmecReporteRequest):
                             detail="La fecha final no puede ser anterior a la inicial.")
     if req.comparar not in ("ninguno", "semana", "anio"):
         raise HTTPException(status_code=400, detail="comparar debe ser 'ninguno', 'semana' o 'anio'.")
+    if req.tipo == "pico_sin" and req.fecha_fin and (req.fecha_fin - req.fecha_inicio).days > 366:
+        # Una consulta a Oracle por día.
+        raise HTTPException(status_code=400, detail="El pico del SIN admite hasta 366 días.")
     if req.comparar == "semana" and req.tipo != "energia_dia":
         raise HTTPException(status_code=400,
                             detail="Comparar con la semana anterior sólo aplica a energia_dia.")

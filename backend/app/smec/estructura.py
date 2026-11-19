@@ -62,3 +62,9 @@ def get_estructura() -> list[dict[str, Any]]:
             ag.pop("_cen", None)
         salida.append(raiz)
     return salida
+
+
+def ids_por_direccion(direccion: str) -> list[int]:
+    """Todas las centrales de una dirección ('iny'/'ret'), sin depender del árbol."""
+    raiz = next(r for r in get_estructura() if r["key"] == direccion)
+    return [c["id_objeto"] for ag in raiz["children"] for c in ag["children"]]
