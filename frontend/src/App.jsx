@@ -46,6 +46,17 @@ function HelpModal({ onClose }) {
             <li><b>192</b> Reprogramación</li>
           </ul>
 
+          <h3>SMEC · Indicadores de potencia</h3>
+          <p><b>Servicio local</b> es la energía de los intervalos con potencia
+             negativa (la central consume); <b>energía bruta</b>, la de los
+             positivos; <b>neta</b>, la suma de ambas.</p>
+
+          <h3>SMEC · SIN</h3>
+          <p><b>Pico diario</b>: para cada día, el intervalo de 15 min con la
+             mayor inyección total del SIN y el aporte de las centrales marcadas
+             (las demás van en «Resto»). <b>Conciliación</b>: inyección menos
+             retiro por día, es decir, pérdidas y desbalance de medición.</p>
+
           <h3>SMEC · Nivel «Árbol»</h3>
           <p>En Potencia 15 min/Hora, el nivel <b>Árbol</b> muestra una grilla
              jerárquica expandible Agente → Central → Medidor (use la flecha de cada fila).</p>

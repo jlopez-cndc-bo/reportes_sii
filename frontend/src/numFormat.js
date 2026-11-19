@@ -61,15 +61,24 @@ export function sumaLimpia(valores) {
   return Number(s.toFixed(Math.min(dec, 10)));
 }
 
+const sumable = (c) => isNumericFmt(c.format) && !c.sinTotal && !c.hidden;
+
+// ¿Hay alguna columna que la fila TOTAL pueda sumar? (p. ej. el pico del SIN no).
+export function tieneTotales(result) {
+  return !!result && result.columns.some(sumable);
+}
+
 // Fila TOTAL: suma cada columna numérica salvo las `sinTotal`. En grillas
 // jerárquicas sólo suman los agentes (nivel 0): las hijas repetirían valores.
+// null si no hay nada que sumar (no se dibuja la fila).
 export function calcTotales(result) {
+  if (!tieneTotales(result)) return null;
   const cols = result.columns.filter((c) => !c.hidden);
   const drill = result.rows.length > 0 && result.rows[0]._nivel !== undefined;
   const base = drill ? result.rows.filter((r) => r._nivel === 0) : result.rows;
   const t = {};
   for (const c of cols) {
-    if (isNumericFmt(c.format) && !c.sinTotal) t[c.key] = sumaLimpia(base.map((r) => r[c.key]));
+    if (sumable(c)) t[c.key] = sumaLimpia(base.map((r) => r[c.key]));
   }
   return t;
 }

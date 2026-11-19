@@ -5,6 +5,7 @@
 import { createContext, useContext } from "react";
 import cndcLogo from "./assets/cndc-logo-azul.png";
 import { Chevrons } from "./icons";
+import { tieneTotales } from "./numFormat";
 
 export const ShellContext = createContext(null);
 const useShell = () => useContext(ShellContext);
@@ -147,9 +148,11 @@ export function ResultBar({ result, generadoEn, extra, showTotals, setShowTotals
       </div>
       <div className="result-actions">
         {children}
-        <label className="totals-toggle">
-          <input type="checkbox" checked={showTotals} onChange={(e) => setShowTotals(e.target.checked)} /> Totales
-        </label>
+        {tieneTotales(result) && (
+          <label className="totals-toggle">
+            <input type="checkbox" checked={showTotals} onChange={(e) => setShowTotals(e.target.checked)} /> Totales
+          </label>
+        )}
         <button type="button" className="pill-btn" onClick={onCopiar}
           title="Copiar la tabla al portapapeles para pegarla en Excel">
           {copied ? "Copiado" : "Copiar"}

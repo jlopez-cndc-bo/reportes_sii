@@ -25,8 +25,16 @@ const SMEC_REPORTS = [
     soloIny: true, unidad: "capacidad en MW, energía en kWh, factor 0–1" },
   { grupo: "Índices", id: "mix_tecnologia", label: "Mix por tecnología", interval: false, fin: true,
     soloIny: true, unidad: "capacidad en MW, energía en kWh, factor 0–1" },
+  // SIN completo: el total no depende del árbol. arbolOpcional = el árbol sólo
+  // elige qué centrales se desglosan; sinArbol = no se usa.
+  { grupo: "SIN", id: "pico_sin", label: "Pico diario", interval: false, fin: true,
+    soloIny: true, arbolOpcional: true },
+  { grupo: "SIN", id: "conciliacion", label: "Conciliación", interval: false, fin: true,
+    sinArbol: true, unidad: "kWh" },
 ];
-const GRUPOS = ["Potencia", "Energía", "Índices"];
+const GRUPOS = ["Potencia", "Energía", "Índices", "SIN"];
+// Más columnas que esto en el pico diario hace la tabla difícil de leer.
+const PICO_COLS_AVISO = 10;
 
 // "Comparar con" de Energía: la semana anterior sólo tiene sentido en Día.
 const COMPARAR = [["ninguno", "Ninguno"], ["semana", "Semana anterior"], ["anio", "Año anterior"]];
@@ -78,6 +86,8 @@ export default function SmecModule() {
   const compararLabel = COMPARAR.find(([k]) => k === comparar)[1].toLowerCase();
   // Indicadores de Potencia: sólo vista (se ocultan en el cliente, sin re-consultar).
   const [indicadores, setIndicadores] = usePersisted("smec.indicadores", true);
+  const [picoPct, setPicoPct] = usePersisted("smec.picoPct", false);
+  const esSin = report.grupo === "SIN";
   const hoy = iso(0);
   const unidad = report.unidad || (report.grupo === "Potencia" ? "kW"
     : report.grupo === "Energía" ? "kWh" : "factor 0–1");
@@ -109,15 +119,18 @@ export default function SmecModule() {
     [visibleTree, checked]);
 
   const buildBody = () => {
-    if (idsSel.length === 0) throw new Error("Seleccione al menos una central en el árbol.");
+    if (idsSel.length === 0 && !report.arbolOpcional && !report.sinArbol) {
+      throw new Error("Seleccione al menos una central en el árbol.");
+    }
     return {
       tipo: report.id,
       fecha_inicio: fechaInicio,
       fecha_fin: report.fin ? fechaFin : null,
-      unidades: idsSel,
+      unidades: report.sinArbol ? [] : idsSel,
       direccion,
       nivel,
       comparar,
+      porcentaje: report.id === "pico_sin" && picoPct,
     };
   };
 
@@ -131,7 +144,7 @@ export default function SmecModule() {
     try {
       const body = buildBody();
       // Se guarda con qué se comparó: el selector puede cambiar después.
-      setResult({ ...(await api.smecReporte(body)), comparar: body.comparar });
+      setResult({ ...(await api.smecReporte(body)), comparar: body.comparar, porcentaje: body.porcentaje });
       setGeneradoEn(new Date());
     } catch (e) { setError(e.message); }
     finally { setRunning(false); }
@@ -159,7 +172,13 @@ export default function SmecModule() {
     } catch (e) { setError(`No se pudo copiar: ${e.message}`); }
   };
 
-  const puedeGenerar = !treeLoading && idsSel.length > 0;
+  const requiereSeleccion = !report.arbolOpcional && !report.sinArbol;
+  const puedeGenerar = !treeLoading && (idsSel.length > 0 || !requiereSeleccion);
+  // Textos del SIN: el modo (kW / %) es el de la consulta generada, no el del selector.
+  const descSin = (pct) => (report.id === "pico_sin"
+    ? `Todo el SIN (inyección), valores en ${pct ? "% del pico" : "kW"}` : "Todo el SIN, valores en kWh");
+  const estadoSin = report.sinArbol ? "Sin selección requerida"
+    : idsSel.length ? `${idsSel.length} central(es) a desglosar` : "Solo total del SIN";
 
   // Series para el gráfico: columnas numéricas como eje X, una serie por
   // fila (en drill sólo los agentes). Se grafican hasta 8 (las de mayor
@@ -197,16 +216,17 @@ export default function SmecModule() {
 
       <QueryPanel
         title={`${report.grupo} › ${report.label}`}
-        desc={<p>Centrales de {dirLabel}, valores en {unidad}.</p>}
-        resumen={`${rango}, ${dirLabel}, ${idsSel.length} central(es)${comparar !== "ninguno" ? `, vs. ${compararLabel}` : ""}`}
-        estado={`${idsSel.length} central(es) seleccionada(s)`} listo={puedeGenerar}
+        desc={<p>{esSin ? `${descSin(picoPct)}.` : `Centrales de ${dirLabel}, valores en ${unidad}.`}</p>}
+        resumen={esSin ? `${rango}, ${estadoSin.toLowerCase()}`
+          : `${rango}, ${dirLabel}, ${idsSel.length} central(es)${comparar !== "ninguno" ? `, vs. ${compararLabel}` : ""}`}
+        estado={esSin ? estadoSin : `${idsSel.length} central(es) seleccionada(s)`} listo={puedeGenerar}
         onGenerar={generar} running={running} puedeGenerar={puedeGenerar}
         footer={<>
           <button className="btn btn--primary" onClick={generar} disabled={running || !puedeGenerar}
             title={!puedeGenerar ? "Seleccione al menos una central para generar el reporte." : undefined}>
             {running ? "Generando…" : "Generar reporte"}</button>
           <button className="btn" onClick={exportar}
-            disabled={exporting || treeLoading || (!(conjunto && puedeConjunto) && idsSel.length === 0)}>
+            disabled={exporting || treeLoading || (!(conjunto && puedeConjunto) && !puedeGenerar)}>
             {exporting ? "Exportando…" : conjunto && puedeConjunto ? "Exportar (2 hojas)" : "Exportar a Excel"}</button>
         </>}>
         <QSec title={report.fin ? "Fechas" : "Fecha"}>
@@ -222,9 +242,10 @@ export default function SmecModule() {
             onPick={(ini, fin) => { setFechaInicio(ini); if (report.fin) setFechaFin(fin); }} />
         </QSec>
 
-        {/* Capacidad/Mix: sin opciones aplicables (sólo Inyección). */}
-        {!report.soloIny && <QSec title="Opciones">
+        {/* soloIny fuerza Inyección y oculta Dirección; la sección se oculta si no queda nada. */}
+        {((!report.soloIny && !report.sinArbol) || report.id === "pico_sin") && <QSec title="Opciones">
           <div className="options">
+            {!report.soloIny && !report.sinArbol && (
             <div className="opt-group">
               <span className="opt-title">Dirección</span>
               <div className="opt-radios">
@@ -232,6 +253,18 @@ export default function SmecModule() {
                 <button type="button" aria-pressed={direccion === "ret"} className={`seg ${direccion === "ret" ? "seg--on" : ""}`} onClick={() => setDireccion("ret")}>Retiro</button>
               </div>
             </div>
+            )}
+            {report.id === "pico_sin" && (
+              <div className="opt-group">
+                <span className="opt-title">Mostrar</span>
+                <div className="opt-radios">
+                  {[[false, "kW"], [true, "% del pico"]].map(([v, lbl]) => (
+                    <button key={lbl} type="button" aria-pressed={picoPct === v}
+                      className={`seg ${picoPct === v ? "seg--on" : ""}`} onClick={() => setPicoPct(v)}>{lbl}</button>
+                  ))}
+                </div>
+              </div>
+            )}
             {report.interval && (
               <div className="opt-group opt-group--stack">
                 <span className="opt-title">Nivel</span>
@@ -267,8 +300,20 @@ export default function SmecModule() {
           </div>
         </QSec>}
 
-        <QSec title={`Centrales de ${dirLabel}`} className="qsec--tree"
+        {report.sinArbol ? (
+          <QSec title="Centrales">
+            <div className="tree-note">Este reporte usa todas las centrales del SIN.</div>
+          </QSec>
+        ) : (
+        <QSec title={report.arbolOpcional ? "Centrales a desglosar (opcional)" : `Centrales de ${dirLabel}`} className="qsec--tree"
           aside={<span className="qsec-count">{idsSel.length} seleccionada(s)</span>}>
+          {report.arbolOpcional && (
+            <div className="tree-note">
+              El total es siempre el del SIN; las centrales marcadas se muestran como columnas y
+              las demás se agrupan en «Resto».
+              {idsSel.length > PICO_COLS_AVISO && ` Con ${idsSel.length} centrales marcadas, la tabla tendrá ${idsSel.length + 1} columnas de aporte.`}
+            </div>
+          )}
           <div className="tree-tools">
             <input className="tree-search" type="search" aria-label="Buscar central o agente" placeholder="Buscar central o agente…" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
             <button type="button" className="pill-btn" onClick={() => setAll(true)}>Todos</button>
@@ -281,13 +326,15 @@ export default function SmecModule() {
                 <Tree nodes={visibleTree} checked={checked} onToggle={onToggle} filter={filtro} />
               </div>}
         </QSec>
+        )}
       </QueryPanel>
 
       <main className="content">
         {error && <div className="error-box" role="alert">{error}</div>}
         {result && result.aviso && <div className="warn-box">⚠ {result.aviso}</div>}
         <ResultBar result={vistaResult} generadoEn={generadoEn}
-          extra={`${dirLabel}, valores en ${unidad}${result && result.comparar !== "ninguno"
+          extra={esSin ? descSin(result?.porcentaje)
+            : `${dirLabel}, valores en ${unidad}${result && result.comparar !== "ninguno"
             ? `, vs. ${COMPARAR.find(([k]) => k === result.comparar)[1].toLowerCase()}` : ""}`}
           showTotals={showTotals} setShowTotals={setShowTotals} copied={copied} onCopiar={copiar}>
           {puedeConjunto && (
@@ -311,8 +358,9 @@ export default function SmecModule() {
             unit={unidad} omitidas={chartData.omitidas} />
         ) : (
           <ResultsTable result={vistaResult} loading={running} showTotals={showTotals}
-            placeholder={`Marque centrales de ${dirLabel} y pulse «Generar reporte».`}
-            emptyHint="Sin datos para esta fecha/selección. Verifique la fecha, la dirección y las centrales marcadas." />
+            placeholder={esSin ? "Pulse «Generar reporte»." : `Marque centrales de ${dirLabel} y pulse «Generar reporte».`}
+            emptyHint={esSin ? "Sin datos para estas fechas."
+              : "Sin datos para esta fecha/selección. Verifique la fecha, la dirección y las centrales marcadas."} />
         )}
       </main>
     </div>

@@ -1,4 +1,4 @@
-"""Reportes SMEC del sistema completo (grupo «Sistema»).
+"""Reportes SMEC del SIN completo (grupo «SIN» del rail).
 
 Se calculan siempre con TODAS las centrales de la dirección; el árbol sólo
 elige qué centrales se desglosan (pico del SIN).
@@ -63,14 +63,13 @@ def pico_sin(f1: datetime, f2: datetime, ids: list[int], pct: bool = False) -> d
     fmt = "0.0" if pct else "num"
     columns = [{"key": "fecha", "label": "Fecha"},
                {"key": "hora", "label": "Hora pico"},
-               {"key": "total", "label": "Total SIN (kW)", "format": "num", "resumen": True,
-                "sinTotal": True}]
+               {"key": "total", "label": "Total SIN (kW)", "format": "num", "sinTotal": True}]
     # Sumar picos de días distintos no tiene sentido: sin fila TOTAL.
-    columns += [{"key": f"c{c}", "label": nombres.get(c, str(c)), "format": fmt, "sinTotal": True}
+    suf = " %" if pct else ""
+    columns += [{"key": f"c{c}", "label": nombres.get(c, str(c)) + suf, "format": fmt, "sinTotal": True}
                 for c in sel]
-    columns.append({"key": "resto", "label": "Resto", "format": fmt, "sinTotal": True})
-    aviso = None if not pct else "Aporte en % del total del SIN en la hora pico de cada día."
-    return {"table": "PICO_SIN", "columns": columns, "rows": out, "aviso": aviso}
+    columns.append({"key": "resto", "label": "Resto" + suf, "format": fmt, "sinTotal": True})
+    return {"table": "PICO_SIN", "columns": columns, "rows": out}
 
 
 def _conciliar(iny: dict[str, float | None], ret: dict[str, float | None],
@@ -104,5 +103,4 @@ def conciliacion(f1: datetime, f2: datetime) -> dict[str, Any]:
                {"key": "pct", "label": "Diferencia %", "format": "0.00", "sinTotal": True}]
     return {"table": "CONCILIACION", "columns": columns,
             "rows": _conciliar(totales("iny"), totales("ret"), dias),
-            "aviso": "Todas las centrales del SIN (no depende del árbol). "
-                     "Diferencia = inyección − retiro: pérdidas y desbalance de medición."}
+            "aviso": "Diferencia = inyección − retiro: pérdidas y desbalance de medición."}

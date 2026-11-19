@@ -81,3 +81,11 @@ def test_suma_limpia_sin_ruido_en_millones():
     from app.export_excel import _suma_limpia
     assert _suma_limpia([11011701.555, 11011701.555, 11011701.555]) == 33035104.665
     assert _suma_limpia([1, 2, None, "x"]) == 3
+
+
+def test_sin_columnas_sumables_no_hay_fila_total():
+    res = {"table": "P", "columns": [{"key": "f", "label": "Fecha"},
+                                     {"key": "t", "label": "Total", "format": "num", "sinTotal": True}],
+           "rows": [{"f": "01/10", "t": 5}]}
+    ws = load_workbook(build_workbook(res, "T", totales=True))["P"]
+    assert ws.max_row == 3

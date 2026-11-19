@@ -27,8 +27,8 @@ export async function copyResultTsv(result, { totales = false } = {}) {
       return i === 0 && r._nivel ? "    ".repeat(r._nivel) + v : v;
     }).join("\t"));
   }
-  if (totales && result.rows.length > 0) {
-    const t = calcTotales(result);
+  const t = totales && result.rows.length > 0 ? calcTotales(result) : null;
+  if (t) {
     lines.push(cols.map((c, i) => (i === 0 ? "TOTAL" : c.key in t ? cell(t[c.key], c.format) : "")).join("\t"));
   }
   const text = lines.join("\r\n");
