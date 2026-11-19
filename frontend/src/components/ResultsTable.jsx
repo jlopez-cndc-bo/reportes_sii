@@ -57,7 +57,7 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
 
   // Índices visibles: filtro de texto (columnas no numéricas) + expansión.
   const view = useMemo(() => {
-    const textKeys = cols.filter((c) => !c.format).map((c) => c.key);
+    const textKeys = cols.filter((c) => !c.format && !c.resumen).map((c) => c.key);
     const coincide = (r) =>
       !q || textKeys.some((k) => r[k] != null && String(r[k]).toLowerCase().includes(q));
 
@@ -97,7 +97,7 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
     const base = drill ? result.rows.filter((r) => r._nivel === 0) : result.rows;
     const t = {};
     for (const c of cols) {
-      if (isNumericFmt(c.format)) {
+      if (isNumericFmt(c.format) && !c.sinTotal) {
         t[c.key] = sumaLimpia(base.map((r) => r[c.key]));
       }
     }

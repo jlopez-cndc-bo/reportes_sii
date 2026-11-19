@@ -176,7 +176,8 @@ class SmecReporteRequest(BaseModel):
         description=(
             "Uno de: 'potencia_15min', 'potencia_hora', 'potencia_max_diario', "
             "'potencia_max_entre_fechas', 'energia_dia', 'energia_mes', "
-            "'energia_anio', 'factor_dia', 'factor_periodo'."
+            "'energia_anio', 'factor_dia', 'factor_periodo', 'capacidad_sistema', "
+            "'mix_tecnologia'."
         ),
         examples=["potencia_hora"],
     )
@@ -196,6 +197,14 @@ class SmecReporteRequest(BaseModel):
             "(sólo con tipo potencia_15min/potencia_hora) | 'drill' (árbol "
             "Agente→Central→Medidor en una sola respuesta plana, con `_nivel` "
             "0/1/2 por fila; sólo potencia_15min/potencia_hora)."
+        ),
+    )
+    comparar: str = Field(
+        "ninguno",
+        description=(
+            "Sólo energia_*: agrega 'Total ant.' y 'Var. %' contra el mismo período "
+            "desplazado. 'ninguno' | 'semana' (7 días antes; sólo energia_dia) | "
+            "'anio' (un año antes)."
         ),
     )
 

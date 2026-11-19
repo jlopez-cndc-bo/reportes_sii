@@ -25,6 +25,118 @@ def _csv(ids: list[int]) -> str | None:
     return ",".join(str(int(i)) for i in ids) if ids else None
 
 
+def _total(valores: list) -> float | None:
+    """Suma de la fila ignorando vacíos; None si no hay datos. round(…, 6) sólo
+    limpia ruido de punto flotante (la base trae ≤ 4 decimales; con 10 el ruido
+    sobrevivía en totales de cientos de millones)."""
+    vs = [v for v in valores if v is not None]
+    return round(sum(vs), 6) if vs else None
+
+
+# Indicadores por fila de potencia. "resumen": el gráfico no los usa como
+# período; "sinTotal": la fila TOTAL no los suma (máximos no coincidentes).
+_COLS_INDICADORES = [
+    {"key": "pot_max", "label": "Máx", "format": "num", "resumen": True, "sinTotal": True},
+    {"key": "hora_max", "label": "Hora máx", "resumen": True},
+    {"key": "pot_min", "label": "Mín", "format": "num", "resumen": True, "sinTotal": True},
+    {"key": "hora_min", "label": "Hora mín", "resumen": True},
+    {"key": "promedio", "label": "Promedio", "format": "num", "resumen": True},
+    {"key": "completitud", "label": "Completitud %", "format": "0.0", "resumen": True, "sinTotal": True},
+    {"key": "energia_bruta", "label": "Energía bruta (kWh)", "format": "num", "resumen": True},
+    {"key": "servicio_local", "label": "Servicio local (kWh)", "format": "num", "resumen": True},
+    {"key": "energia_neta", "label": "Energía neta (kWh)", "format": "num", "resumen": True},
+    {"key": "horas_servicio", "label": "Horas en servicio", "format": "0.00", "resumen": True, "sinTotal": True},
+    {"key": "arranques", "label": "Arranques", "format": "num", "resumen": True},
+    {"key": "rampa_max", "label": "Rampa máx", "format": "num", "resumen": True, "sinTotal": True},
+    {"key": "hora_rampa", "label": "Hora rampa", "resumen": True},
+]
+
+
+def _indicadores(fila: dict, keys: list[str], labels: list[str]) -> None:
+    """Indicadores de una fila de potencia (kW) sobre intervalos de 24h/len(keys).
+
+    Máx/Mín con signo (negativo = consumo de servicio local) y la hora del
+    primer intervalo en que ocurren; promedio sobre intervalos con dato.
+    Energía = potencia × duración del intervalo; bruta = parte positiva,
+    servicio local = parte negativa. Arranque = paso de ≤0 a >0 entre
+    intervalos con dato. Rampa = mayor variación (con signo) entre dos
+    intervalos contiguos con dato; su hora es la del intervalo de llegada.
+    """
+    vals = [fila.get(k) for k in keys]
+    pares = [(v, lab) for v, lab in zip(vals, labels) if v is not None]
+    if not pares:
+        fila.update({c["key"]: None for c in _COLS_INDICADORES})
+        return
+    dt = 24 / len(keys)
+    r10 = lambda x: round(x, 10)  # noqa: E731 — sólo limpia ruido de punto flotante
+    vmax, hmax = max(pares, key=lambda p: p[0])
+    vmin, hmin = min(pares, key=lambda p: p[0])
+    bruta = sum(v for v, _ in pares if v > 0) * dt
+    local = sum(v for v, _ in pares if v < 0) * dt
+    arranques = sum(1 for (a, _), (b, _) in zip(pares, pares[1:]) if a <= 0 < b)
+    rampa, hrampa = None, None
+    for i in range(1, len(vals)):
+        if vals[i] is not None and vals[i - 1] is not None:
+            d = vals[i] - vals[i - 1]
+            if rampa is None or abs(d) > abs(rampa):
+                rampa, hrampa = d, labels[i]
+    fila.update(
+        pot_max=vmax, hora_max=hmax, pot_min=vmin, hora_min=hmin,
+        promedio=r10(sum(v for v, _ in pares) / len(pares)),
+        completitud=r10(len(pares) * 100 / len(keys)),
+        energia_bruta=r10(bruta), servicio_local=r10(local), energia_neta=r10(bruta + local),
+        horas_servicio=r10(sum(1 for v, _ in pares if v > 0) * dt),
+        arranques=arranques,
+        rampa_max=None if rampa is None else r10(rampa), hora_rampa=hrampa,
+    )
+
+
+# ───────────────────── Energía: participación y comparación ───────────────────
+
+def _desplazar(f: datetime, comparar: str) -> datetime:
+    if comparar == "semana":
+        return f - timedelta(days=7)
+    try:
+        return f.replace(year=f.year - 1)
+    except ValueError:  # 29/02 → 28/02
+        return f.replace(year=f.year - 1, day=28)
+
+
+def energia_enriquecida(fn, f1: datetime, f2: datetime, ids: list[int],
+                        direccion: str, comparar: str = "ninguno",
+                        tecnologias: dict[str, str] | None = None) -> dict[str, Any]:
+    """Corre un reporte de energía (con columna `total`) y agrega Part. % y,
+    si se pide, el total del mismo período desplazado (semana / año) y Var. %.
+    Con `tecnologias` (código de central → tecnología) agrega esa columna
+    después de Central."""
+    res = fn(f1, f2, ids, direccion)
+    rows = res["rows"]
+    if tecnologias is not None:
+        for r in rows:
+            r["tecnologia"] = tecnologias.get(r.get("central"), "Sin clasificar")
+        i = next(i for i, c in enumerate(res["columns"]) if c["key"] == "central") + 1
+        res["columns"] = (res["columns"][:i] + [{"key": "tecnologia", "label": "Tecnología"}]
+                          + res["columns"][i:])
+    suma = sum(r["total"] for r in rows if r.get("total") is not None)
+    for r in rows:
+        t = r.get("total")
+        r["part"] = round(t * 100 / suma, 10) if suma and t is not None else None
+    cols = [{"key": "part", "label": "Part. %", "format": "0.0", "resumen": True, "sinTotal": True}]
+    if comparar in ("semana", "anio"):
+        prev = fn(_desplazar(f1, comparar), _desplazar(f2, comparar), ids, direccion)
+        ant = {(p.get("agente"), p.get("central")): p.get("total") for p in prev["rows"]}
+        for r in rows:
+            a, t = ant.get((r.get("agente"), r.get("central"))), r.get("total")
+            r["total_ant"] = a
+            r["var"] = round((t - a) * 100 / abs(a), 10) if a and t is not None else None
+        cols += [
+            {"key": "total_ant", "label": "Total ant.", "format": "num", "resumen": True},
+            {"key": "var", "label": "Var. %", "format": "0.0", "resumen": True, "sinTotal": True},
+        ]
+    res["columns"] = res["columns"] + cols
+    return res
+
+
 def _target(direccion: str) -> int:
     return -1 if direccion == "iny" else 1
 
@@ -76,12 +188,14 @@ def potencia_intervalo(fecha: datetime, ids: list[int], resolucion: str,
     columns = [{"key": "nombre", "label": _NOMBRE_NIVEL[nivel].capitalize()}]
     for k, lab in zip(icols, labels):
         columns.append({"key": k, "label": lab, "format": "num"})
+    columns += _COLS_INDICADORES
 
     out = []
     for r in rows:
         fila = {"nombre": r[ni]}
         for k, ix in zip(icols, iidx):
             fila[k] = r[ix]
+        _indicadores(fila, icols, labels)
         out.append(fila)
     return {"table": f"POT_{nivel.upper()}", "columns": columns, "rows": out}
 
@@ -104,11 +218,13 @@ def potencia_drill(fecha: datetime, ids: list[int], resolucion: str,
     mcols, mrows = call_proc(f"{PKG}.P_GET_POTENCIA_MEDIDOR{suf}", [fecha, idscsv])
 
     icols = [c for c in acols if c.startswith("I") and c[1:].isdigit()]
+    labels = _interval_labels(len(icols))
 
     def fila(cols: list[str], r: tuple, nombre_col: str, nivel: int) -> dict:
         out = {"nombre": r[cols.index(nombre_col)], "_nivel": nivel}
         for k in icols:
             out[k] = r[cols.index(k)] if k in cols else None
+        _indicadores(out, icols, labels)
         return out
 
     adi, acod = acols.index("DIR"), acols.index("COD_AGENTE")
@@ -132,10 +248,10 @@ def potencia_drill(fecha: datetime, ids: list[int], resolucion: str,
             for m in med_por_central.get(c[ccc], []):
                 rows.append(fila(mcols, m, "MEDIDOR", 2))
 
-    labels = _interval_labels(len(icols))
     columns = [{"key": "nombre", "label": "Agente / Central / Medidor"}]
     for k, lab in zip(icols, labels):
         columns.append({"key": k, "label": lab, "format": "num"})
+    columns += _COLS_INDICADORES
     return {"table": "POT_DRILL", "columns": columns, "rows": rows}
 
 
@@ -190,18 +306,22 @@ def energia_dia(f1: datetime, f2: datetime, ids: list[int],
     cols, rows = call_proc(f"{PKG}.P_GET_ENERGIA_DIA", [f1, dias, _csv(ids)])
     rows = _filtrar_dir(cols, rows, direccion)
     ia, ic = _idx(cols, "NOMBRE_AGENTE"), _idx(cols, "NOMBRE_CENTRAL")
-    daycols = [c for c in cols if c[0] == "D" and c[1:].isdigit()]
+    # El proc devuelve D0..D<dias> (un día de más, verificado 2026-11-19 contra
+    # sm_energia_cen_dia): se descarta lo que cae fuera del rango pedido.
+    daycols = [c for c in cols if c[0] == "D" and c[1:].isdigit() and int(c[1:]) < dias]
     columns = [{"key": "agente", "label": "Agente"},
                {"key": "central", "label": "Central"}]
     for c in daycols:
         n = int(c[1:])
         columns.append({"key": c, "label": (f1 + timedelta(days=n)).strftime("%d/%m"),
                         "format": "num"})
+    columns.append({"key": "total", "label": "Total", "format": "num", "resumen": True})
     out = []
     for r in rows:
         fila = {"agente": r[ia], "central": r[ic]}
         for c in daycols:
             fila[c] = r[cols.index(c)]
+        fila["total"] = _total([fila[c] for c in daycols])
         out.append(fila)
     return {"table": "ENERGIA_DIA", "columns": columns, "rows": out}
 
@@ -259,11 +379,13 @@ def energia_mes(f1: datetime, f2: datetime, ids: list[int],
         y = f_ini.year + mes // 12
         columns.append({"key": f"m{i}", "label": f"{mes % 12 + 1:02d}/{y}",
                         "format": "num"})
+    columns.append({"key": "total", "label": "Total", "format": "num", "resumen": True})
     out = []
     for r in filas:
         fila = {"agente": r.get("nombre_agente"), "central": r.get("nombre_central")}
         for i in range(num_meses + 1):
             fila[f"m{i}"] = r.get(f"m{i}")
+        fila["total"] = _total([fila[f"m{i}"] for i in range(num_meses + 1)])
         out.append(fila)
     return {"table": "ENERGIA_MES", "columns": columns, "rows": out}
 
@@ -308,11 +430,13 @@ def energia_anio(f1: datetime, f2: datetime, ids: list[int],
                {"key": "central", "label": "Central"}]
     for i in range(num + 1):
         columns.append({"key": f"a{i}", "label": str(f_ini.year + i), "format": "num"})
+    columns.append({"key": "total", "label": "Total", "format": "num", "resumen": True})
     out = []
     for r in filas:
         fila = {"agente": r.get("nombre_agente"), "central": r.get("nombre_central")}
         for i in range(num + 1):
             fila[f"a{i}"] = r.get(f"a{i}")
+        fila["total"] = _total([fila[f"a{i}"] for i in range(num + 1)])
         out.append(fila)
     return {"table": "ENERGIA_ANIO", "columns": columns, "rows": out}
 

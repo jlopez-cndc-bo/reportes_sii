@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 
 from ..export_excel import build_workbook, build_workbook_multi
 from ..schemas import ReportResponse, SmecReporteRequest
-from ..smec import estructura
+from ..smec import capacidad, estructura
 from ..smec import reportes as R
 
 router = APIRouter(prefix="/api/smec", tags=["smec"])
@@ -24,6 +24,8 @@ _TITULOS = {
     "energia_anio": "Energía - Año",
     "factor_dia": "Factor de carga - Día",
     "factor_periodo": "Factor de carga - Periodo",
+    "capacidad_sistema": "Capacidad por sistema",
+    "mix_tecnologia": "Mix por tecnología",
 }
 
 
@@ -59,16 +61,20 @@ def _despachar(req: SmecReporteRequest):
         return R.maximo_periodo(f1, f2, ids, d)
     if t == "potencia_max_entre_fechas":
         return R.maximo_entre_fechas(f1, f2, ids, d)
-    if t == "energia_dia":
-        return R.energia_dia(f1, f2, ids, d)
-    if t == "energia_mes":
-        return R.energia_mes(f1, f2, ids, d)
-    if t == "energia_anio":
-        return R.energia_anio(f1, f2, ids, d)
+    energia = {"energia_dia": R.energia_dia, "energia_mes": R.energia_mes,
+               "energia_anio": R.energia_anio}
+    if t in energia:
+        # La tecnología sale de la capacidad efectiva, que sólo cubre Inyección.
+        tecs = capacidad.tecnologia_por_codigo() if d == "iny" else None
+        return R.energia_enriquecida(energia[t], f1, f2, ids, d, req.comparar, tecs)
     if t == "factor_dia":
         return R.factor_carga(f1, f1, ids, d)
     if t == "factor_periodo":
         return R.factor_carga(f1, f2, ids, d)
+    if t == "capacidad_sistema":
+        return capacidad.capacidad_sistema(f1, f2, ids, d)
+    if t == "mix_tecnologia":
+        return capacidad.mix_tecnologia(f1, f2, ids, d)
     raise ValueError(f"Tipo de reporte SMEC desconocido: {t}")
 
 
@@ -76,6 +82,11 @@ def _validar(req: SmecReporteRequest):
     if req.fecha_fin and req.fecha_fin < req.fecha_inicio:
         raise HTTPException(status_code=400,
                             detail="La fecha final no puede ser anterior a la inicial.")
+    if req.comparar not in ("ninguno", "semana", "anio"):
+        raise HTTPException(status_code=400, detail="comparar debe ser 'ninguno', 'semana' o 'anio'.")
+    if req.comparar == "semana" and req.tipo != "energia_dia":
+        raise HTTPException(status_code=400,
+                            detail="Comparar con la semana anterior sólo aplica a energia_dia.")
 
 
 @router.post(
@@ -105,6 +116,7 @@ def reporte_get(
     unidades: list[int] = Query(default_factory=list),
     direccion: str = Query("iny", description="'iny' (inyección) | 'ret' (retiro)."),
     nivel: str = Query("central"),
+    comparar: str = Query("ninguno", description="Sólo energia_*: 'ninguno' | 'semana' | 'anio'."),
 ):
     req = SmecReporteRequest(
         tipo=tipo,
@@ -113,6 +125,7 @@ def reporte_get(
         unidades=unidades,
         direccion=direccion,
         nivel=nivel,
+        comparar=comparar,
     )
     _validar(req)
     return _guard(_despachar, req)

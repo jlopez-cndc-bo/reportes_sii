@@ -20,8 +20,16 @@ const SMEC_REPORTS = [
   { grupo: "Energía", id: "energia_anio", label: "Año", interval: false, fin: true },
   { grupo: "Índices", id: "factor_dia", label: "Factor Día", interval: false, fin: false },
   { grupo: "Índices", id: "factor_periodo", label: "Factor Periodo", interval: false, fin: true },
+  { grupo: "Índices", id: "capacidad_sistema", label: "Capacidad por sistema", interval: false, fin: true,
+    soloIny: true, unidad: "capacidad en MW, energía en kWh, factor 0–1" },
+  { grupo: "Índices", id: "mix_tecnologia", label: "Mix por tecnología", interval: false, fin: true,
+    soloIny: true, unidad: "capacidad en MW, energía en kWh, factor 0–1" },
 ];
 const GRUPOS = ["Potencia", "Energía", "Índices"];
+
+// "Comparar con" de Energía: la semana anterior sólo tiene sentido en Día.
+const COMPARAR = [["ninguno", "Ninguno"], ["semana", "Semana anterior"], ["anio", "Año anterior"]];
+const opcionesComparar = (id) => COMPARAR.filter(([k]) => k !== "semana" || id === "energia_dia");
 
 // Reportes con serie temporal graficable (X = intervalos/días/meses/años).
 const GRAFICABLES = new Set([
@@ -40,7 +48,9 @@ export default function SmecModule() {
   const [tipo, setTipo] = usePersisted("smec.reporte", "potencia_15min");
   // Fallback por si un id persistido ya no existe en esta versión.
   const report = useMemo(() => SMEC_REPORTS.find((r) => r.id === tipo) || SMEC_REPORTS[0], [tipo]);
-  const [direccion, setDireccion] = usePersisted("smec.direccion", "iny");
+  const [direccionGuardada, setDireccion] = usePersisted("smec.direccion", "iny");
+  // Capacidad/Mix sólo existen para Inyección: se fuerza sin pisar la preferencia guardada.
+  const direccion = report.soloIny ? "iny" : direccionGuardada;
   const [nivel, setNivel] = usePersisted("smec.nivel", "central");
   const [fechaInicio, setFechaInicio] = useState(iso(1));
   const [fechaFin, setFechaFin] = useState(iso(0));
@@ -58,9 +68,17 @@ export default function SmecModule() {
   // una dirección a la vez, así que la selección actual no decide esto).
   const [conjunto, setConjunto] = useState(false);
   const puedeConjunto = report.id === "potencia_15min" || report.id === "potencia_hora";
+  const esEnergia = report.grupo === "Energía";
+  const [compararGuardado, setComparar] = usePersisted("smec.comparar", "ninguno");
+  // Valor persistido que no aplica al reporte actual (p. ej. "semana" en Mes) → Ninguno.
+  const comparar = esEnergia && opcionesComparar(report.id).some(([k]) => k === compararGuardado)
+    ? compararGuardado : "ninguno";
+  const compararLabel = COMPARAR.find(([k]) => k === comparar)[1].toLowerCase();
+  // Indicadores de Potencia: sólo vista (se ocultan en el cliente, sin re-consultar).
+  const [indicadores, setIndicadores] = usePersisted("smec.indicadores", true);
   const hoy = iso(0);
-  const unidad = report.grupo === "Potencia" ? "kW"
-    : report.grupo === "Energía" ? "kWh" : "factor 0–1";
+  const unidad = report.unidad || (report.grupo === "Potencia" ? "kW"
+    : report.grupo === "Energía" ? "kWh" : "factor 0–1");
 
   const cargarArbol = useCallback(async () => {
     setTreeLoading(true); setTreeError(null);
@@ -97,13 +115,21 @@ export default function SmecModule() {
       unidades: idsSel,
       direccion,
       nivel,
+      comparar,
     };
   };
+
+  const vistaResult = useMemo(() => {
+    if (!result || indicadores || !puedeConjunto) return result;
+    return { ...result, columns: result.columns.map((c) => (c.resumen ? { ...c, hidden: true } : c)) };
+  }, [result, indicadores, puedeConjunto]);
 
   const generar = async () => {
     setRunning(true); setError(null); setResult(null);
     try {
-      setResult(await api.smecReporte(buildBody()));
+      const body = buildBody();
+      // Se guarda con qué se comparó: el selector puede cambiar después.
+      setResult({ ...(await api.smecReporte(body)), comparar: body.comparar });
       setGeneradoEn(new Date());
     } catch (e) { setError(e.message); }
     finally { setRunning(false); }
@@ -125,7 +151,7 @@ export default function SmecModule() {
 
   const copiar = async () => {
     try {
-      await copyResultTsv(result);
+      await copyResultTsv(vistaResult);
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch (e) { setError(`No se pudo copiar: ${e.message}`); }
@@ -139,9 +165,10 @@ export default function SmecModule() {
   // entidad y no a su rango.
   const chartData = useMemo(() => {
     if (!result || !GRAFICABLES.has(report.id) || result.rows.length === 0) return null;
-    const numCols = result.columns.filter((c) => c.format && c.format !== "datetime" && !c.hidden);
+    // "resumen": Total/Máx/Mín/Promedio no son un período del eje X.
+    const numCols = result.columns.filter((c) => c.format && c.format !== "datetime" && !c.hidden && !c.resumen);
     if (numCols.length < 2) return null;
-    const textKeys = result.columns.filter((c) => !c.format).map((c) => c.key);
+    const textKeys = result.columns.filter((c) => !c.format && !c.resumen).map((c) => c.key);
     let rows = result.rows;
     if (rows[0]?._nivel !== undefined) rows = rows.filter((r) => r._nivel === 0);
     const todas = rows.map((r, i) => ({
@@ -169,7 +196,7 @@ export default function SmecModule() {
       <QueryPanel
         title={`${report.grupo} › ${report.label}`}
         desc={<p>Centrales de {dirLabel}, valores en {unidad}.</p>}
-        resumen={`${rango}, ${dirLabel}, ${idsSel.length} central(es)`}
+        resumen={`${rango}, ${dirLabel}, ${idsSel.length} central(es)${comparar !== "ninguno" ? `, vs. ${compararLabel}` : ""}`}
         estado={`${idsSel.length} central(es) seleccionada(s)`} listo={puedeGenerar}
         onGenerar={generar} running={running} puedeGenerar={puedeGenerar}
         footer={<>
@@ -193,7 +220,8 @@ export default function SmecModule() {
             onPick={(ini, fin) => { setFechaInicio(ini); if (report.fin) setFechaFin(fin); }} />
         </QSec>
 
-        <QSec title="Opciones">
+        {/* Capacidad/Mix: sin opciones aplicables (sólo Inyección). */}
+        {!report.soloIny && <QSec title="Opciones">
           <div className="options">
             <div className="opt-group">
               <span className="opt-title">Dirección</span>
@@ -216,6 +244,18 @@ export default function SmecModule() {
                 </div>
               </div>
             )}
+            {esEnergia && (
+              <div className="opt-group opt-group--stack">
+                <span className="opt-title">Comparar con</span>
+                <div className="opt-radios">
+                  {opcionesComparar(report.id).map(([k, lbl]) => (
+                    <button key={k} type="button" aria-pressed={comparar === k}
+                      className={`seg ${comparar === k ? "seg--on" : ""}`} onClick={() => setComparar(k)}>
+                      {lbl}</button>
+                  ))}
+                </div>
+              </div>
+            )}
             {puedeConjunto && (
               <label className="opt-check opt-check--wide" title="Un solo archivo con hoja Inyección + hoja Retiro, con todas las centrales de cada dirección (no depende de la selección del árbol).">
                 <input type="checkbox" checked={conjunto} onChange={(e) => setConjunto(e.target.checked)} />
@@ -223,7 +263,7 @@ export default function SmecModule() {
               </label>
             )}
           </div>
-        </QSec>
+        </QSec>}
 
         <QSec title={`Centrales de ${dirLabel}`} className="qsec--tree"
           aside={<span className="qsec-count">{idsSel.length} seleccionada(s)</span>}>
@@ -244,8 +284,15 @@ export default function SmecModule() {
       <main className="content">
         {error && <div className="error-box" role="alert">{error}</div>}
         {result && result.aviso && <div className="warn-box">⚠ {result.aviso}</div>}
-        <ResultBar result={result} generadoEn={generadoEn} extra={`${dirLabel}, valores en ${unidad}`}
+        <ResultBar result={vistaResult} generadoEn={generadoEn}
+          extra={`${dirLabel}, valores en ${unidad}${result && result.comparar !== "ninguno"
+            ? `, vs. ${COMPARAR.find(([k]) => k === result.comparar)[1].toLowerCase()}` : ""}`}
           showTotals={showTotals} setShowTotals={setShowTotals} copied={copied} onCopiar={copiar}>
+          {puedeConjunto && (
+            <label className="totals-toggle" title="Máx, mín, promedio, energía, arranques, rampa… al final de cada fila. El Excel siempre los incluye.">
+              <input type="checkbox" checked={indicadores} onChange={(e) => setIndicadores(e.target.checked)} /> Indicadores
+            </label>
+          )}
           {chartData && (
             <span className="vista-toggle">
               <button type="button" aria-pressed={vista === "tabla"}
@@ -261,7 +308,7 @@ export default function SmecModule() {
           <Chart series={chartData.series} labels={chartData.labels}
             unit={unidad} omitidas={chartData.omitidas} />
         ) : (
-          <ResultsTable result={result} loading={running} showTotals={showTotals}
+          <ResultsTable result={vistaResult} loading={running} showTotals={showTotals}
             placeholder={`Marque centrales de ${dirLabel} y pulse «Generar reporte».`}
             emptyHint="Sin datos para esta fecha/selección. Verifique la fecha, la dirección y las centrales marcadas." />
         )}
