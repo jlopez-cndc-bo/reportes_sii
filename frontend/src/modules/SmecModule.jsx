@@ -9,6 +9,7 @@ import { isoDaysAgo as iso } from "../dateUtils";
 import { copyResultTsv } from "../copyTsv";
 import { usePersisted, usePersistedSet } from "../usePersisted";
 import { Rail, QueryPanel, QSec, ResultBar, fechaCorta } from "../shell";
+import { Refresh } from "../icons";
 
 const SMEC_REPORTS = [
   { grupo: "Potencia", id: "potencia_15min", label: "15 Minutos", interval: true, fin: false },
@@ -268,10 +269,10 @@ export default function SmecModule() {
         <QSec title={`Centrales de ${dirLabel}`} className="qsec--tree"
           aside={<span className="qsec-count">{idsSel.length} seleccionada(s)</span>}>
           <div className="tree-tools">
-            <input className="tree-search" type="search" placeholder="Buscar central o agente…" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
+            <input className="tree-search" type="search" aria-label="Buscar central o agente" placeholder="Buscar central o agente…" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
             <button type="button" className="pill-btn" onClick={() => setAll(true)}>Todos</button>
             <button type="button" className="pill-btn" onClick={() => setAll(false)}>Ninguno</button>
-            <button type="button" className="pill-btn pill-btn--icon" onClick={cargarArbol} title="Recargar el árbol" aria-label="Recargar el árbol">↻</button>
+            <button type="button" className="pill-btn pill-btn--icon" onClick={cargarArbol} title="Recargar el árbol" aria-label="Recargar el árbol"><Refresh /></button>
           </div>
           {treeLoading ? <div className="tree-empty">Cargando…</div>
             : treeError ? <div className="tree-error">{treeError}</div>

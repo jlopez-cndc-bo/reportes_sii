@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { api } from "../api";
+import { useDialog } from "../useDialog";
+import { Close } from "../icons";
 
 // Picker modal para elegir una falla sin saber de memoria el código interno:
 // busca por código visible (nro/gestión) o texto de la descripción corta.
@@ -10,14 +12,8 @@ export default function FallaSearchModal({ onClose, onSelect }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const inputRef = useRef(null);
-
-  useEffect(() => { inputRef.current?.focus(); }, []);
-
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const dlgRef = useDialog(onClose, inputRef);
+  const titleId = useId();
 
   useEffect(() => {
     let cancelado = false;
@@ -38,15 +34,17 @@ export default function FallaSearchModal({ onClose, onSelect }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Buscar falla">
+      <div ref={dlgRef} className="modal" onClick={(e) => e.stopPropagation()} role="dialog"
+        aria-modal="true" aria-labelledby={titleId}>
         <div className="modal-head">
-          <h2>Buscar falla</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Cerrar">✕</button>
+          <h2 id={titleId}>Buscar falla</h2>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Cerrar"><Close /></button>
         </div>
         <div className="modal-body">
           <input
             ref={inputRef}
-            type="text"
+            type="search"
+            aria-label="Buscar falla por código o descripción"
             className="falla-search-input"
             placeholder="Código (nro/gestión) o texto de la descripción…"
             value={q}

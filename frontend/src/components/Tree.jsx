@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { nodeState, countLeaves } from "../treeUtils";
+import { Chevron } from "../icons";
 
 // ¿El nodo o alguno de sus descendientes coincide con el filtro?
 function matches(node, q) {
@@ -27,9 +28,9 @@ function TreeNodeRow({ node, checked, onToggle, depth, q, bigTree }) {
     <div className="tree-node">
       <div className="tree-row" style={{ paddingLeft: depth * 14 }}>
         {hasChildren ? (
-          <button className="tree-toggle" onClick={() => setOpen((o) => !o)}
-            aria-label={expanded ? "Colapsar" : "Expandir"}>
-            {expanded ? "▾" : "▸"}
+          <button type="button" className="tree-toggle" onClick={() => setOpen((o) => !o)}
+            aria-label={`Expandir ${node.label}`} aria-expanded={expanded}>
+            <Chevron className="toggle-chev" />
           </button>
         ) : (
           <span className="tree-toggle tree-toggle--empty" />

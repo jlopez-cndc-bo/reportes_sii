@@ -4,23 +4,12 @@
 // comparte por contexto para que sea el mismo en los tres módulos.
 import { createContext, useContext } from "react";
 import cndcLogo from "./assets/cndc-logo-azul.png";
+import { Chevrons } from "./icons";
 
 export const ShellContext = createContext(null);
 const useShell = () => useContext(ShellContext);
 
 export const fechaCorta = (iso) => (iso ? iso.split("-").reverse().join("/") : "");
-
-function Chevrons({ dir }) {
-  const d = dir === "left"
-    ? "M8 3.5L3.5 8 8 12.5M12.5 3.5L8 8l4.5 4.5"
-    : "M8 3.5L12.5 8 8 12.5M3.5 3.5L8 8l-4.5 4.5";
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
-      strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d={d} />
-    </svg>
-  );
-}
 
 function IconBtn({ label, onClick, children, ...rest }) {
   return (

@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { api } from "./api";
 import IndispModule from "./modules/IndispModule";
 import SmecModule from "./modules/SmecModule";
 import SisfallaModule from "./modules/SisfallaModule";
 import { ShellContext } from "./shell";
 import { usePersisted } from "./usePersisted";
+import { useDialog } from "./useDialog";
+import { Close } from "./icons";
 
 const MODULOS = [
   { id: "indisp", label: "Indisponibilidades" },
@@ -13,12 +15,15 @@ const MODULOS = [
 ];
 
 function HelpModal({ onClose }) {
+  const ref = useDialog(onClose);
+  const titleId = useId();
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Ayuda">
+      <div ref={ref} className="modal" onClick={(e) => e.stopPropagation()} role="dialog"
+        aria-modal="true" aria-labelledby={titleId}>
         <div className="modal-head">
-          <h2>Guía rápida</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Cerrar">✕</button>
+          <h2 id={titleId}>Guía rápida</h2>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Cerrar"><Close /></button>
         </div>
         <div className="modal-body">
           <h3>Jerarquía de elementos</h3>
@@ -43,7 +48,7 @@ function HelpModal({ onClose }) {
 
           <h3>SMEC · Nivel «Árbol»</h3>
           <p>En Potencia 15 min/Hora, el nivel <b>Árbol</b> muestra una grilla
-             jerárquica expandible Agente → Central → Medidor (pulse ▸).</p>
+             jerárquica expandible Agente → Central → Medidor (use la flecha de cada fila).</p>
 
           <h3>Indisponibilidades · Programación</h3>
           <p>Los reportes de <b>Programación</b> (mantenimiento y Programado vs
@@ -90,7 +95,9 @@ export default function App() {
   }, [modulo]);
 
   // Paneles comprimibles: se recuerda entre sesiones y es común a los módulos.
-  const [railOpen, setRailOpen] = usePersisted("ui.railOpen", window.innerWidth >= 1400);
+  // v2: reinicia la preferencia guardada con el umbral viejo (1400) para que
+  // las laptops de 1366/1536 vean la navegación abierta al menos una vez.
+  const [railOpen, setRailOpen] = usePersisted("ui.railOpen.v2", window.innerWidth >= 1280);
   const [queryOpen, setQueryOpen] = usePersisted("ui.queryOpen", true);
 
   const shell = useMemo(() => ({

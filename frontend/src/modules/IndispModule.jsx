@@ -10,6 +10,7 @@ import { isoDaysAgo } from "../dateUtils";
 import { copyResultTsv } from "../copyTsv";
 import { usePersisted, usePersistedSet } from "../usePersisted";
 import { Rail, QueryPanel, QSec, ResultBar, fechaCorta } from "../shell";
+import { Refresh } from "../icons";
 
 export default function IndispModule() {
   const [fechaInicio, setFechaInicio] = useState(isoDaysAgo(7));
@@ -171,10 +172,10 @@ export default function IndispModule() {
             </div>
           )}
           <div className="tree-tools">
-            <input className="tree-search" type="search" placeholder="Buscar componente…" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
+            <input className="tree-search" type="search" aria-label="Buscar componente" placeholder="Buscar componente…" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
             <button type="button" className="pill-btn" onClick={() => setAll(true)}>Todos</button>
             <button type="button" className="pill-btn" onClick={() => setAll(false)}>Ninguno</button>
-            <button type="button" className="pill-btn pill-btn--icon" onClick={cargarArbol} title="Recargar el árbol" aria-label="Recargar el árbol">↻</button>
+            <button type="button" className="pill-btn pill-btn--icon" onClick={cargarArbol} title="Recargar el árbol" aria-label="Recargar el árbol"><Refresh /></button>
           </div>
           <div className="tree-count">
             {totales.todos} componente(s) vigente(s) a hoy

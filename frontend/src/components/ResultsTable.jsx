@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatNumber, isNumericFmt, sumaLimpia } from "../numFormat";
+import { Chevron } from "../icons";
 
 // Filas renderizadas inicialmente; con cientos de columnas (hasta 673 en
 // Potencias Indisponibles) el DOM crece rápido, así que se pagina el render.
@@ -136,9 +137,9 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
   return (
     <div className="results-wrap">
       <div className="results-tools">
-        <input className="results-filter" type="search" placeholder="Filtrar resultados…"
+        <input className="results-filter" type="search" aria-label="Filtrar resultados" placeholder="Filtrar resultados…"
           value={filtro} onChange={(e) => setFiltro(e.target.value)} />
-        {q && <span className="results-filter-info">{view.length} coincidencia(s)</span>}
+        <span className="results-filter-info" role="status">{q ? `${view.length} coincidencia(s)` : ""}</span>
         {view.length > limit && (
           <div className="results-page-actions">
             <span>Mostrando {limit.toLocaleString("es-BO")} de {view.length.toLocaleString("es-BO")}</span>
@@ -148,9 +149,9 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
         )}
         {drill && (
           <>
-            <span className="results-tools-hint">Pulse ▸ para expandir Agente → Central → Medidor</span>
-            <button className="mini-btn" onClick={() => expandAll(true)}>Expandir todo</button>
-            <button className="mini-btn" onClick={() => expandAll(false)}>Colapsar todo</button>
+            <span className="results-tools-hint">Expanda Agente → Central → Medidor</span>
+            <button type="button" className="mini-btn" onClick={() => expandAll(true)}>Expandir todo</button>
+            <button type="button" className="mini-btn" onClick={() => expandAll(false)}>Colapsar todo</button>
           </>
         )}
       </div>
@@ -158,13 +159,20 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
       <table className="results-table">
         <thead>
           <tr>
-            {cols.map((c, idx) => (
-              <th key={c.key} className={`${idx === 0 ? "sticky-col" : ""} ${drill ? "" : "th-sort"}`} title={c.label}
-                onClick={() => onSort(c.key)}>
-                {c.label}
-                {!drill && sort.key === c.key && <span className="sort-ind">{sort.dir === 1 ? " ▲" : " ▼"}</span>}
-              </th>
-            ))}
+            {cols.map((c, idx) => {
+              const sorted = !drill && sort.key === c.key;
+              return (
+                <th key={c.key} className={`${idx === 0 ? "sticky-col" : ""} ${drill ? "" : "th-sort"}`} title={c.label}
+                  aria-sort={sorted ? (sort.dir === 1 ? "ascending" : "descending") : undefined}>
+                  {drill ? c.label : (
+                    <button type="button" className="th-sort-btn" onClick={() => onSort(c.key)}>
+                      {c.label}
+                      {sorted && <Chevron size={10} dir={sort.dir === 1 ? "up" : "down"} className="sort-ind" />}
+                    </button>
+                  )}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -184,9 +192,9 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
                       <td key={c.key} className={cls}>
                         <span className="drill-cell" style={{ paddingLeft: row._nivel * 18 }}>
                           {hasChildren(ri) ? (
-                            <button className="drill-toggle" onClick={() => toggleRow(ri)}
-                              aria-label={expanded.has(ri) ? "Colapsar" : "Expandir"}>
-                              {expanded.has(ri) ? "▾" : "▸"}
+                            <button type="button" className="drill-toggle" onClick={() => toggleRow(ri)}
+                              aria-label={`Expandir ${v}`} aria-expanded={expanded.has(ri)}>
+                              <Chevron className="toggle-chev" />
                             </button>
                           ) : (
                             <span className="drill-toggle drill-toggle--empty" />
