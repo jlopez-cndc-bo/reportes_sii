@@ -42,7 +42,7 @@ export function Rail({ grupos, reports, activeId, onPick }) {
       <div className="rail-brand">
         <img className="rail-logo" src={cndcLogo} alt="CNDC — Comité Nacional de Despacho de Carga" />
         <div className="rail-title">
-          <span>Reportes SII</span>
+          <span>Reportes CNDC</span>
           <IconBtn label="Comprimir navegación" onClick={sh.toggleRail}><Chevrons dir="left" /></IconBtn>
         </div>
       </div>

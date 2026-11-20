@@ -59,7 +59,7 @@ _TAGS_METADATA = [
 ]
 
 app = FastAPI(
-    title="Reportes SII — CNDC",
+    title="Reportes CNDC",
     description=_DESCRIPTION,
     version="0.1.0",
     lifespan=lifespan,
