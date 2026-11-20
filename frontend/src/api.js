@@ -63,4 +63,9 @@ export const api = {
   sisfallaExportar: (endpoint, body) => download(`/api/sisfalla/exportar/${endpoint}`, body),
   sisfallaBuscarFallas: (q, limite = 30) =>
     fetch(`/api/sisfalla/fallas/buscar?${new URLSearchParams({ q: q || "", limite })}`).then((r) => r.json()),
+  // SCADA HFD
+  hfdRegistros: (body) => post("/api/hfd/registros", body),
+  hfdExportar: (body) => download("/api/hfd/exportar", body),
+  hfdConsolidado: (id, body) => post(`/api/hfd/consolidados/${id}`, body),
+  hfdConsolidadoExportar: (id, body) => download(`/api/hfd/consolidados/${id}/exportar`, body),
 };

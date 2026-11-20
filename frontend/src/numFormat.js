@@ -75,7 +75,8 @@ export function calcTotales(result) {
   if (!tieneTotales(result)) return null;
   const cols = result.columns.filter((c) => !c.hidden);
   const drill = result.rows.length > 0 && result.rows[0]._nivel !== undefined;
-  const base = drill ? result.rows.filter((r) => r._nivel === 0) : result.rows;
+  // `_sinTotal`: fila que se muestra pero no suma (p. ej. Exportación fuera del SIN).
+  const base = (drill ? result.rows.filter((r) => r._nivel === 0) : result.rows).filter((r) => !r._sinTotal);
   const t = {};
   for (const c of cols) {
     if (sumable(c)) t[c.key] = sumaLimpia(base.map((r) => r[c.key]));

@@ -77,6 +77,15 @@ def test_fila_total_drill_suma_solo_nivel_0():
     assert ws.cell(row=6, column=2).value == "=SUM(B3,B5)"
 
 
+def test_fila_total_drill_omite_filas_sin_total():
+    # HFD: Exportación se muestra en nivel 0 pero no suma en el TOTAL del SIN.
+    res = {"table": "HFD", "columns": [
+        {"key": "n", "label": "Nombre"}, {"key": "h0", "label": "00:00", "format": "num"}],
+        "rows": [{"n": "Termo", "h0": 10, "_nivel": 0}, {"n": "Exportación", "h0": 5, "_nivel": 0, "_sinTotal": True}]}
+    ws = load_workbook(build_workbook(res, "T", totales=True))["HFD"]
+    assert ws.cell(row=5, column=2).value == "=SUM(B3)"
+
+
 def test_suma_limpia_sin_ruido_en_millones():
     from app.export_excel import _suma_limpia
     assert _suma_limpia([11011701.555, 11011701.555, 11011701.555]) == 33035104.665
@@ -89,3 +98,9 @@ def test_sin_columnas_sumables_no_hay_fila_total():
            "rows": [{"f": "01/10", "t": 5}]}
     ws = load_workbook(build_workbook(res, "T", totales=True))["P"]
     assert ws.max_row == 3
+
+
+def test_aviso_total_siempre_va_en_el_excel():
+    res = {**_RESULT, "aviso": "Hoy incompleto.", "aviso_total": "TOTAL = SIN."}
+    ws = load_workbook(build_workbook(res, "T"))["DEMO"]
+    assert ws.cell(row=2, column=1).value == "Nota: Hoy incompleto. TOTAL = SIN."

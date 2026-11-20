@@ -152,7 +152,7 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
         )}
         {drill && (
           <>
-            <span className="results-tools-hint">Expanda Agente → Central → Medidor</span>
+            <span className="results-tools-hint">Expanda {cols[0].label.split(" / ").join(" → ")}</span>
             <button type="button" className="mini-btn" onClick={() => expandAll(true)}>Expandir todo</button>
             <button type="button" className="mini-btn" onClick={() => expandAll(false)}>Colapsar todo</button>
           </>

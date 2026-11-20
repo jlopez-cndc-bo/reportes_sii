@@ -3,6 +3,7 @@ import { api } from "./api";
 import IndispModule from "./modules/IndispModule";
 import SmecModule from "./modules/SmecModule";
 import SisfallaModule from "./modules/SisfallaModule";
+import ScadaModule from "./modules/ScadaModule";
 import { ShellContext } from "./shell";
 import { usePersisted } from "./usePersisted";
 import { useDialog } from "./useDialog";
@@ -12,6 +13,7 @@ const MODULOS = [
   { id: "indisp", label: "Indisponibilidades" },
   { id: "smec", label: "SMEC" },
   { id: "sisfalla", label: "Sisfalla", beta: true },
+  { id: "scada", label: "SCADA HFD", beta: true },
 ];
 
 function HelpModal({ onClose }) {
@@ -77,6 +79,15 @@ function HelpModal({ onClose }) {
              reportes del grupo <b>CNDC</b> sólo muestran fallas cuyo informe
              FINAL o RECTIFICATORIO del CNDC ya fue emitido.</p>
 
+          <h3>SCADA HFD</h3>
+          <p>Registros crudos del HFD de SCADA por archivo (generadores,
+             transferencias, tensiones, embalses y taps): una fila por medida y
+             día, con la lectura de cada 15 minutos de <b>00:00 a 23:45</b>, igual
+             que el archivo del HFD. Hasta 31 días por
+             consulta; «Estación» acota lo que se trae de la base. Los
+             <b>Consolidados</b> (generación y energía por tecnología, demanda
+             por departamento) bajan hasta cada unidad o elemento medido.</p>
+
           <h3>Tips</h3>
           <ul>
             <li>Click en un encabezado de columna para <b>ordenar</b>.</li>
@@ -124,10 +135,11 @@ export default function App() {
   return (
     <ShellContext.Provider value={shell}>
       <div className="app">
-        {/* Los tres módulos permanecen montados para preservar su estado al alternar. */}
+        {/* Los módulos permanecen montados para preservar su estado al alternar. */}
         <div className={`modwrap ${modulo === "indisp" ? "" : "modwrap--hidden"}`}><IndispModule /></div>
         <div className={`modwrap ${modulo === "smec" ? "" : "modwrap--hidden"}`}><SmecModule /></div>
         <div className={`modwrap ${modulo === "sisfalla" ? "" : "modwrap--hidden"}`}><SisfallaModule /></div>
+        <div className={`modwrap ${modulo === "scada" ? "" : "modwrap--hidden"}`}><ScadaModule /></div>
 
         {help && <HelpModal onClose={() => setHelp(false)} />}
       </div>

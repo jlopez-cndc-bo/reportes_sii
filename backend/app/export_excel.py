@@ -52,7 +52,8 @@ def _llenar_hoja(ws, result: dict[str, Any], titulo: str, totales: bool = False)
     if ncols > 1:
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=ncols)
 
-    aviso = result.get("aviso")
+    # El Excel siempre lleva la fila TOTAL, así que su aclaración va siempre.
+    aviso = " ".join(filter(None, [result.get("aviso"), result.get("aviso_total")])) or None
     header_row = 3 if aviso else 2
     if aviso:
         ws.cell(row=2, column=1, value=f"Nota: {aviso}").font = Font(italic=True, color="B45309")
@@ -120,7 +121,8 @@ def _fila_total(ws, cols, rows, first: int, r: int) -> None:
     columnas `sinTotal` y en grillas jerárquicas (`_nivel`) sólo el nivel 0."""
     drill = rows[0].get("_nivel") is not None
     # shortcut: SUMA admite 255 argumentos; en drill son los agentes (decenas).
-    filas = [first + i for i, row in enumerate(rows) if not drill or row.get("_nivel") == 0]
+    filas = [first + i for i, row in enumerate(rows)
+             if (not drill or row.get("_nivel") == 0) and not row.get("_sinTotal")]
     ws.cell(row=r, column=1, value="TOTAL").font = Font(bold=True)
     for j, c in enumerate(cols, start=1):
         if j == 1 or not _es_sumable(c):

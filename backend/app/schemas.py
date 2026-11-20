@@ -5,7 +5,7 @@ React, los consume directamente cualquier script interno que quiera
 automatizar la obtención de estos reportes, por eso cada campo documenta su
 significado y valores válidos.
 """
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Any
 
 from pydantic import BaseModel, BeforeValidator, Field
@@ -84,6 +84,9 @@ class ReportResponse(BaseModel):
     rows: list[dict[str, Any]]
     aviso: str | None = Field(
         None, description="Advertencia no bloqueante (p.ej. datos parciales u omitidos)."
+    )
+    aviso_total: str | None = Field(
+        None, description="Aclaración sobre la fila TOTAL; la UI la muestra sólo con Totales activo."
     )
 
 
@@ -288,3 +291,21 @@ class SisfallaExportRequest(BaseModel):
     hasta: datetime | None = None
     gestion: int | None = None
     limite: int = Field(500, ge=1, le=2000)
+
+
+class HfdRegistrosRequest(BaseModel):
+    """SCADA HFD: registros crudos por día (96 intervalos de 15 min por medida)."""
+
+    archivo: str = Field(..., description="generadores | transferencias | tensiones | embalses | taps")
+    magnitud: str = Field(..., description="Valor de `type` en el HFD: P, Q, U, COTA_EMB, TAP…")
+    desde: date
+    hasta: date
+    estacion: str | None = Field(None, description="Coincidencia parcial con la estación (b1).")
+
+
+class HfdConsolidadoRequest(BaseModel):
+    """SCADA HFD consolidados: `fecha` para los de 15 min; `desde`/`hasta` para energía."""
+
+    fecha: date | None = None
+    desde: date | None = None
+    hasta: date | None = None
