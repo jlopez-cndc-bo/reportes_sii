@@ -81,7 +81,7 @@ function HelpModal({ onClose }) {
 
           <h3>SCADA HFD</h3>
           <p>Registros crudos del HFD de SCADA por archivo (generadores,
-             transferencias, tensiones, embalses y taps): una fila por medida y
+             transferencias, tensiones, embalses, taps y bancos de capacitores): una fila por medida y
              día, con la lectura de cada 15 minutos de <b>00:00 a 23:45</b>, igual
              que el archivo del HFD. Hasta 31 días por
              consulta; «Estación» acota lo que se trae de la base. Los

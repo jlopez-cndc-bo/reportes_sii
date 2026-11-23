@@ -43,6 +43,14 @@ export const SCADA_REPORTS = [
     descripcion: "Posición del tap de transformadores, total y por fase (archivo TAP__1MM).",
     magnitudes: ["TAP", "TAP_A", "TAP_B", "TAP_C", "TapPosMv"],
   },
+  {
+    id: "bancos",
+    label: "Bancos de capacitores (52)",
+    grupo: "Registros",
+    descripcion: "Estado del interruptor de cada banco de capacitores, una foto cada 15 minutos "
+      + "(archivo 52_BCAP): 1 = cerrado, 0 = abierto, -1 = sin foto todavía ese día.",
+    magnitudes: ["CB"],
+  },
   // Consolidados con drill-down hasta la medida (POST /api/hfd/consolidados/{id}).
   // `fin`: usa rango Inicio/Final; si no, una sola fecha (como SMEC).
   {

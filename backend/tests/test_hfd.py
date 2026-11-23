@@ -108,3 +108,23 @@ def test_indicadores_energia_mwh():
     vals[10], vals[11] = 100.0, 200.0
     ind = C._indicadores(vals)
     assert ind["maximo"] == 200.0 and ind["hora_max"] == "02:45" and ind["energia"] == 75.0
+
+
+def test_bancos_no_suma_en_total(monkeypatch):
+    monkeypatch.setattr(R, "_horizontal_existe", lambda t: False)
+    monkeypatch.setattr(R, "query", lambda sql, p=None: [])
+    d = date(2026, 11, 17)
+    cols = R.registros("bancos", "CB", d, d)["columns"]
+    assert all(c.get("sinTotal") for c in cols if c["key"].startswith("p"))
+
+
+def test_tabla_sin_cargar_da_mensaje_claro(monkeypatch):
+    import oracledb
+
+    def falla(sql, p=None):
+        raise oracledb.DatabaseError("ORA-00942: table or view does not exist")
+    monkeypatch.setattr(R, "_horizontal_existe", lambda t: False)
+    monkeypatch.setattr(R, "query", falla)
+    d = date(2026, 11, 17)
+    with pytest.raises(ValueError, match="todavía no hay datos"):
+        R.registros("bancos", "CB", d, d)

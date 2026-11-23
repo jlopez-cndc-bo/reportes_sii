@@ -14,6 +14,8 @@ donde no hay dato.
 from datetime import date
 from typing import Any
 
+import oracledb
+
 from ..db import query
 from . import correcciones
 
@@ -26,6 +28,8 @@ ARCHIVOS: dict[str, tuple[str, str, str]] = {
     "tensiones": ("TDM_V30_SP7", "TDM_V30_DIA", "Tensiones"),
     "embalses": ("TDM_H30_SP7", "TDM_H30_DIA", "Embalses"),
     "taps": ("TAP__1MM_SP7", "TAP__1MM_DIA", "Taps de transformadores"),
+    # 52_BCAP: foto del interruptor cada 15 min; 1 = cerrado, 0 = abierto, -1 = sin foto aún.
+    "bancos": ("TDM_BCAP_SP7", "TDM_BCAP_DIA", "Bancos de capacitores (52)"),
 }
 
 # Confirmadas por el usuario (2026-11-19); embalses y taps sin confirmar.
@@ -136,7 +140,12 @@ def registros(archivo: str, magnitud: str, desde: date, hasta: date,
 
     params = {"magnitud": magnitud, "desde": desde, "hasta": hasta,
               "tabla": vert, "estacion": estacion}
-    filas = query(_sql(vert, horiz if _horizontal_existe(horiz) else None), params)
+    try:
+        filas = query(_sql(vert, horiz if _horizontal_existe(horiz) else None), params)
+    except oracledb.DatabaseError as e:
+        if "ORA-00942" in str(e):  # p. ej. TDM_BCAP_SP7 antes de sql/015 de rs7
+            raise ValueError(f"{label}: todavía no hay datos cargados en la base.")
+        raise
 
     rows = [
         {
