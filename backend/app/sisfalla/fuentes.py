@@ -8,28 +8,9 @@ antes de interpolarlos.
 import re
 
 from ..config import get_settings
-from ..db import query
 
 _SQL_IDENTIFIER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)?$")
 
-_cache_columnas: dict[str, set[str]] = {}
-
-
-def tiene_columna(tabla: str, columna: str) -> bool:
-    """Divergencias de esquema entre entornos (confirmado: `F_GF_REGFALLA`
-    no tiene `FK_COD_SUPERVISOR2` en el Oracle que lee ReportesSII, aunque sí
-    la tiene el SisFalla original) obligan a no asumir columnas opcionales.
-    Cacheado por tabla: `all_tab_columns` no cambia durante la vida del proceso.
-    """
-    cols = _cache_columnas.get(tabla.upper())
-    if cols is None:
-        rows = query(
-            "SELECT column_name FROM all_tab_columns WHERE table_name = :t",
-            {"t": tabla.upper()},
-        )
-        cols = {r["column_name"].upper() for r in rows}
-        _cache_columnas[tabla.upper()] = cols
-    return columna.upper() in cols
 
 
 def _validar(source: str, nombre: str) -> str:

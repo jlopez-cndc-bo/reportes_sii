@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
 
 
 _DESCRIPTION = """
-API de reportes del CNDC (Reporte de la Operación + SMEC + Sisfalla + SCADA HFD). Además de
+API de reportes del CNDC (Reporte de la Operación + SMEC + Sistema de Fallas + SCADA HFD). Además de
 alimentar la UI web, está pensada para que sistemas internos consuman estos
 mismos datos y automaticen sus propios procesos: todos los endpoints bajo
 `/api` devuelven JSON (o un .xlsx en `/api/exportar/*`, `/api/smec/exportar`
@@ -49,7 +49,7 @@ _TAGS_METADATA = [
     {
         "name": "sisfalla",
         "description": (
-            "Reportes de fallas del sistema eléctrico (módulo SisFalla): los 15 "
+            "Sistema de Fallas: los 14 "
             "reportes tabulares de solo lectura. Excluidos por decisión del usuario "
             "(datos de contacto personal, no operativos): agente-contactos y "
             "notificacion-falla; también fuera de alcance el informe PDF puntual "

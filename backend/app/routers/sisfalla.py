@@ -192,39 +192,39 @@ def rpt_operacion_edac(req: FallaFiltroRequest):
 
 _EXPORTABLES: dict[str, tuple[str, Callable[["SisfallaExportRequest"], dict]]] = {
     "seguimiento-informes": (
-        "Seguimiento de Informes",
+        "Seguimiento de informes",
         lambda r: R.seguimiento_informes(r.cod_falla, r.agente, r.desde, r.hasta, r.limite),
     ),
     "detalle-informes": (
-        "Detalle de Informes",
+        "Detalle de informes",
         lambda r: R.detalle_informes(r.cod_falla, r.agente, r.desde, r.hasta, r.gestion, r.limite),
     ),
-    "detalle-supervisor": ("Detalle por Supervisor", lambda r: R.detalle_supervisor(r.desde, r.hasta)),
-    "agentes": ("Catálogo de Agentes", lambda r: R.agentes()),
-    "resumen-agentes": ("Resumen de Fallas por Agente", lambda r: R.resumen_agentes(r.desde, r.hasta)),
+    "detalle-supervisor": ("Fallas por supervisor y operador", lambda r: R.detalle_supervisor(r.desde, r.hasta)),
+    "agentes": ("Catálogo de agentes", lambda r: R.agentes()),
+    "resumen-agentes": ("Fallas por agente", lambda r: R.resumen_agentes(r.desde, r.hasta)),
     "componentes-comprometidos": (
-        "Componentes Comprometidos",
+        "Componentes comprometidos",
         lambda r: R.componentes_comprometidos(r.cod_falla, r.agente, r.desde, r.hasta),
     ),
     "elementos-comprometidos": (
-        "Elementos Comprometidos",
+        "Tiempos de desconexión",
         lambda r: R.elementos_comprometidos(r.cod_falla, r.agente, r.desde, r.hasta),
     ),
     "falla-alimentadores": (
-        "Fallas de Alimentadores",
+        "Alimentadores y ENS",
         lambda r: R.falla_alimentadores(r.cod_falla, r.agente, r.desde, r.hasta),
     ),
     "det-interruptores": (
-        "Detalle de Interruptores",
+        "Interruptores",
         lambda r: R.det_interruptores(r.cod_falla, r.agente, r.desde, r.hasta),
     ),
-    "reles-operados": ("Relés Operados", lambda r: R.reles_operados(r.cod_falla, r.agente, r.desde, r.hasta)),
-    "edac": ("Consulta EDAC", lambda r: R.edac(r.agente, r.desde, r.hasta)),
+    "reles-operados": ("Relés operados", lambda r: R.reles_operados(r.cod_falla, r.agente, r.desde, r.hasta)),
+    "edac": ("Configuración EDAC por agente", lambda r: R.edac(r.agente, r.desde, r.hasta)),
     "detalle-desconexiones": (
-        "Detalle de Desconexiones",
+        "Desconexiones en transmisión (STI)",
         lambda r: R.detalle_desconexiones(r.cod_falla, r.agente, r.desde, r.hasta),
     ),
-    "edac-analisis": ("EDAC para Análisis", lambda r: R.edac_analisis()),
+    "edac-analisis": ("Configuración EDAC vigente", lambda r: R.edac_analisis()),
     "operacion-edac": (
         "Operación EDAC",
         lambda r: R.operacion_edac(r.cod_falla, r.agente, r.desde, r.hasta),
@@ -234,12 +234,12 @@ _EXPORTABLES: dict[str, tuple[str, Callable[["SisfallaExportRequest"], dict]]] =
 
 @router.post(
     "/exportar/{id}",
-    summary="Cualquier reporte SISFALLA, como archivo .xlsx",
+    summary="Cualquier reporte del Sistema de Fallas, como archivo .xlsx",
     description="`id` es el mismo identificador usado en /reportes/{id}.",
 )
 def exportar(id: str, req: SisfallaExportRequest):
     if id not in _EXPORTABLES:
-        raise HTTPException(status_code=404, detail=f"Reporte SISFALLA desconocido: {id}")
+        raise HTTPException(status_code=404, detail=f"Reporte desconocido del Sistema de Fallas: {id}")
     label, fn = _EXPORTABLES[id]
     res = _guard(fn, req)
 
@@ -248,8 +248,8 @@ def exportar(id: str, req: SisfallaExportRequest):
         ini = req.desde.date().isoformat()
         fin = (req.hasta or req.desde).date().isoformat()
         rango = f" — {ini} a {fin}"
-    titulo = f"{label}{rango}"
+    titulo = f"Sistema de Fallas · {label}{rango}"
     buf = build_workbook(res, titulo)
-    fname = f"Sisfalla_{label.replace(' ', '_')}{rango.replace(' ', '').replace('—', '_')}.xlsx"
+    fname = f"Sistema_de_Fallas_{label.replace(' ', '_')}{rango.replace(' ', '').replace('—', '_')}.xlsx"
     headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"}
     return StreamingResponse(buf, media_type=_XLSX, headers=headers)

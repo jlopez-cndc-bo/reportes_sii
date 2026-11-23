@@ -1,4 +1,4 @@
-// Metadatos de los 15 reportes del módulo SISFALLA. A diferencia de
+// Metadatos de los 14 reportes del módulo SISFALLA («Sistema de Fallas» en la UI). A diferencia de
 // Indisp/SMEC, este dominio no tiene árbol de componentes: los filtros son
 // campos sueltos (cod_falla, agente, desde, hasta), declarados por reporte en
 // `campos` para que el sidebar sólo muestre los que aplican.
@@ -16,7 +16,7 @@ const fallaFiltroBody = (f) => ({
 export const SISFALLA_REPORTS = [
   {
     id: "seguimiento-informes",
-    label: "Seguimiento",
+    label: "Seguimiento de informes",
     grupo: "Informes",
     metodo: "post",
     descripcion: "Plazos y estado de seguimiento de informes, por falla y agente.",
@@ -56,7 +56,7 @@ export const SISFALLA_REPORTS = [
   },
   {
     id: "detalle-supervisor",
-    label: "Supervisor/operador",
+    label: "Fallas por supervisor y operador",
     grupo: "Informes",
     metodo: "post",
     descripcion: "Fallas listadas con supervisor y operador asignados.",
@@ -73,7 +73,7 @@ export const SISFALLA_REPORTS = [
   },
   {
     id: "resumen-agentes",
-    label: "Resumen por agente",
+    label: "Fallas por agente",
     grupo: "Agentes",
     metodo: "post",
     descripcion: "Cantidad de fallas con informe registrado por cada agente, incluidos los que no tuvieron ninguna en el rango.",
@@ -83,7 +83,7 @@ export const SISFALLA_REPORTS = [
   {
     id: "componentes-comprometidos",
     label: "Componentes comprometidos",
-    grupo: "CNDC",
+    grupo: "Análisis de fallas",
     metodo: "post",
     descripcion: "Componentes afectados en informes finales del CNDC.",
     campos: { codFalla: true, agente: true, desde: true, hasta: true },
@@ -92,8 +92,8 @@ export const SISFALLA_REPORTS = [
   },
   {
     id: "elementos-comprometidos",
-    label: "Elementos comprometidos",
-    grupo: "CNDC",
+    label: "Tiempos de desconexión",
+    grupo: "Análisis de fallas",
     metodo: "post",
     descripcion: "Detalle de tiempos de desconexión por componente.",
     campos: { codFalla: true, agente: true, desde: true, hasta: true },
@@ -102,8 +102,8 @@ export const SISFALLA_REPORTS = [
   },
   {
     id: "falla-alimentadores",
-    label: "Fallas de alimentadores",
-    grupo: "CNDC",
+    label: "Alimentadores y ENS",
+    grupo: "Análisis de fallas",
     metodo: "post",
     descripcion: "Operaciones de alimentadores, incluida la energía no suministrada (ENS).",
     campos: { codFalla: true, agente: true, desde: true, hasta: true },
@@ -112,8 +112,8 @@ export const SISFALLA_REPORTS = [
   },
   {
     id: "det-interruptores",
-    label: "Detalle de interruptores",
-    grupo: "CNDC",
+    label: "Interruptores",
+    grupo: "Análisis de fallas",
     metodo: "post",
     descripcion: "Operaciones de interruptores: apertura, cierre y reconexión.",
     campos: { codFalla: true, agente: true, desde: true, hasta: true },
@@ -123,7 +123,7 @@ export const SISFALLA_REPORTS = [
   {
     id: "reles-operados",
     label: "Relés operados",
-    grupo: "CNDC",
+    grupo: "Análisis de fallas",
     metodo: "post",
     descripcion: "Relés operados por falla (una fila por operación de interruptor, con o sin relé asociado).",
     campos: { codFalla: true, agente: true, desde: true, hasta: true },
@@ -132,18 +132,18 @@ export const SISFALLA_REPORTS = [
   },
   {
     id: "detalle-desconexiones",
-    label: "Detalle de desconexiones",
-    grupo: "CNDC",
+    label: "Desconexiones en transmisión (STI)",
+    grupo: "Análisis de fallas",
     metodo: "post",
-    descripcion: "Detalle STI/no STI de componentes desconectados (líneas, transformadores y autotransformadores de empresas transmisoras) y tiempos asociados.",
+    descripcion: "Componentes desconectados de empresas transmisoras (líneas, transformadores y autotransformadores), dentro y fuera del STI, con sus tiempos.",
     campos: { codFalla: true, agente: true, desde: true, hasta: true },
     reglaCndc: true,
     buildBody: fallaFiltroBody,
   },
   {
     id: "operacion-edac",
-    label: "Operación EDAC",
-    grupo: "CNDC",
+    label: "Operación",
+    grupo: "EDAC",
     metodo: "post",
     descripcion: "Operaciones de alimentadores asociadas a EDAC y análisis de falla.",
     campos: { codFalla: true, agente: true, desde: true, hasta: true },
@@ -152,7 +152,7 @@ export const SISFALLA_REPORTS = [
   },
   {
     id: "edac",
-    label: "Consulta EDAC",
+    label: "Configuración por agente",
     grupo: "EDAC",
     metodo: "post",
     descripcion: "Componentes con parámetros EDAC configurados por agente (solo lectura).",
@@ -161,7 +161,7 @@ export const SISFALLA_REPORTS = [
   },
   {
     id: "edac-analisis",
-    label: "EDAC para análisis",
+    label: "Configuración vigente",
     grupo: "EDAC",
     metodo: "get",
     descripcion: "Configuración EDAC vigente (fecha más reciente disponible), agrupada por categoría y etapa.",

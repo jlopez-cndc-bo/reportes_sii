@@ -23,7 +23,6 @@ from .fuentes import (
     componentes_atributos_source,
     componentes_sti_source,
     personas_source,
-    tiene_columna,
 )
 
 MAX_LIMITE = 2000
@@ -242,26 +241,17 @@ def buscar_fallas(q: str | None, limite: int = 30) -> list[dict[str, Any]]:
 # ──────────────────────── 3. Detalle por supervisor/operador ────────────────────────
 
 def detalle_supervisor(desde: datetime | None, hasta: datetime | None) -> dict[str, Any]:
-    # FK_COD_SUPERVISOR2 no existe en todos los entornos (confirmado: falta
-    # en el Oracle que lee ReportesSII, aunque sí existe en SisFalla original)
-    # — se omite el join/columna si la tabla no la tiene, en vez de fallar.
-    con_sup2 = tiene_columna("F_GF_REGFALLA", "FK_COD_SUPERVISOR2")
-    sup2_select = "sup2.NOM_PERSONA AS SUPERVISOR2," if con_sup2 else "NULL AS SUPERVISOR2,"
-    sup2_join = (
-        f"LEFT JOIN {personas_source()} sup2 ON r.FK_COD_SUPERVISOR2 = sup2.PK_COD_PERSONA"
-        if con_sup2 else ""
-    )
+    # Sin «Supervisor 2»: FK_COD_SUPERVISOR2 existe en SisFalla original pero no
+    # en el Oracle que lee ReportesSII; el usuario pidió quitar la columna (2026-11-23).
     sql = f"""
         SELECT
             r.PK_COD_FALLA,
             r.FEC_INICIO,
             NVL(r.DESCRIPCION_CORTA_FALLA, '') AS DESCRIPCION,
             sup.NOM_PERSONA AS SUPERVISOR,
-            {sup2_select}
             oper.NOM_PERSONA AS OPERADOR
         FROM F_GF_REGFALLA r
         INNER JOIN {personas_source()} sup ON r.FK_COD_SUPERVISOR = sup.PK_COD_PERSONA
-        {sup2_join}
         INNER JOIN {personas_source()} oper ON r.FK_COD_OPERADOR = oper.PK_COD_PERSONA
         WHERE 1 = 1
     """
@@ -278,7 +268,6 @@ def detalle_supervisor(desde: datetime | None, hasta: datetime | None) -> dict[s
             "fecInicio": r.get("fec_inicio"),
             "descripcion": r.get("descripcion") or "",
             "supervisor": r.get("supervisor") or "",
-            "supervisor2": r.get("supervisor2") or "",
             "operador": r.get("operador") or "",
         }
         for r in query(sql, params)
@@ -288,11 +277,9 @@ def detalle_supervisor(desde: datetime | None, hasta: datetime | None) -> dict[s
         {"key": "fecInicio", "label": "Fecha inicio", "format": "datetime"},
         {"key": "descripcion", "label": "Descripción"},
         {"key": "supervisor", "label": "Supervisor"},
-        {"key": "supervisor2", "label": "Supervisor 2"},
         {"key": "operador", "label": "Operador"},
     ]
-    aviso = None if con_sup2 else "Supervisor 2 no está disponible en este Oracle (columna inexistente)."
-    return {"table": "DETALLE_SUPERVISOR", "columns": columns, "rows": rows, "aviso": aviso}
+    return {"table": "DETALLE_SUPERVISOR", "columns": columns, "rows": rows}
 
 
 # ──────────────────────── 4. Catálogo de agentes ────────────────────────

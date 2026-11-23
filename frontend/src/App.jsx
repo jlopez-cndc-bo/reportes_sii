@@ -12,8 +12,8 @@ import { Close } from "./icons";
 const MODULOS = [
   { id: "indisp", label: "Reporte de la Operación" },
   { id: "smec", label: "Sistema de Medición Comercial", nombre: "SMEC" },
-  { id: "sisfalla", label: "Sisfalla", beta: true },
-  { id: "scada", label: "SCADA HFD", beta: true },
+  { id: "sisfalla", label: "Sistema de Fallas", beta: true },
+  { id: "scada", label: "SCADA HFD", nombre: "Historical File Data", beta: true },
 ];
 
 function HelpModal({ onClose }) {
@@ -69,14 +69,14 @@ function HelpModal({ onClose }) {
           <p>En Potencia, el nivel <b>Jerárquico</b> muestra una grilla
              expandible Agente → Central → Medidor (use la flecha de cada fila).</p>
 
-          <h3>Sisfalla</h3>
+          <h3>Sistema de Fallas</h3>
           <p>Reportes de fallas del sistema eléctrico. No usa árbol de
              componentes: filtre por <b>falla</b> (código puntual), <b>agente</b>
              (texto libre) y/o rango de fechas — todos opcionales. Los
-             reportes del grupo <b>CNDC</b> sólo muestran fallas cuyo informe
-             FINAL o RECTIFICATORIO del CNDC ya fue emitido.</p>
+             reportes de <b>Análisis de fallas</b> y <b>EDAC › Operación</b> sólo muestran
+             fallas cuyo informe FINAL o RECTIFICATORIO del CNDC ya fue emitido.</p>
 
-          <h3>SCADA HFD</h3>
+          <h3>SCADA HFD (Historical File Data)</h3>
           <p>Registros crudos del HFD de SCADA por archivo (generadores,
              transferencias, tensiones, embalses, taps y bancos de capacitores): una fila por medida y
              día, con la lectura de cada 15 minutos de <b>00:00 a 23:45</b>, igual
