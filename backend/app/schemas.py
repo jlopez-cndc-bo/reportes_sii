@@ -309,3 +309,27 @@ class HfdConsolidadoRequest(BaseModel):
     fecha: date | None = None
     desde: date | None = None
     hasta: date | None = None
+
+
+class HfdLoginRequest(BaseModel):
+    """Login de editores de correcciones HFD (usuario del dominio CNDC)."""
+
+    usuario: str = Field(..., max_length=64)
+    password: str = Field(..., max_length=256)
+
+
+class HfdCambio(BaseModel):
+    intervalo: int = Field(..., ge=0, le=95, description="0..95 = 00:00..23:45")
+    valor: float | None = Field(None, description="MW; null anula la corrección vigente")
+    fuente: str = Field("MANUAL", description="SMEC | MANUAL")
+
+
+class HfdCorreccionRequest(BaseModel):
+    """Correcciones de una señal HFD en un día cerrado."""
+
+    archivo: str = Field("generadores")
+    id_obj: int
+    el: str = Field(..., description="P | Q")
+    fecha: date
+    cambios: list[HfdCambio] = Field(..., min_length=1, max_length=96)
+    motivo: str = Field(..., max_length=400)

@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { SCADA_REPORTS, MAX_DIAS_HFD, UNIDADES } from "../scadaReports";
 import OptionsPanel from "../components/OptionsPanel";
 import ResultsTable from "../components/ResultsTable";
 import DatePresets from "../components/DatePresets";
+import HfdLoginDialog from "../components/HfdLoginDialog";
+import HfdCorreccionModal from "../components/HfdCorreccionModal";
 import { isoDaysAgo as iso } from "../dateUtils";
 import { copyResultTsv } from "../copyTsv";
 import { usePersisted } from "../usePersisted";
@@ -76,7 +78,59 @@ export default function ScadaModule() {
     } catch (e) { setError(`No se pudo copiar: ${e.message}`); }
   };
 
-  const pick = (id) => { setActiveId(id); setResult(null); setError(null); };
+  // ── Correcciones de operadores SCADA (sólo Registros › Generadores) ──
+  const corregible = report.id === "generadores";
+  const [editor, setEditor] = useState(null);          // usuario AD con sesión, o null
+  const [login, setLogin] = useState(null);            // {despues} mientras el login está abierto
+  const [seleccion, setSeleccion] = useState(false);   // modo «elija la fila a corregir»
+  const [filaEditar, setFilaEditar] = useState(null);
+  const [recarga, setRecarga] = useState(null);        // {estado, fecha, n, log, ultimo, inicio}
+  const [ahora, setAhora] = useState(Date.now());
+
+  useEffect(() => { api.hfdSesion().then((r) => setEditor(r.usuario)).catch(() => {}); }, []);
+  useEffect(() => {
+    if (recarga?.estado !== "corriendo") return undefined;
+    const t = setInterval(() => setAhora(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [recarga?.estado]);
+
+  const conSesion = (accion) => (editor ? accion() : setLogin({ despues: accion }));
+  const onLoginOk = (u) => { const despues = login?.despues; setEditor(u); setLogin(null); despues?.(); };
+  // Sesión vencida a mitad de una corrección: se reabre el login y se reintenta lo pendiente.
+  const onSesionVencida = (reintentar) => { setEditor(null); setLogin({ despues: reintentar }); };
+  const cerrarSesion = () => { api.hfdLogout().catch(() => {}); setEditor(null); setSeleccion(false); };
+
+  const recargar = (fecha, n) => {
+    let exito = false, fin = false;
+    setRecarga({ estado: "corriendo", fecha, n, log: [], ultimo: "Iniciando la recarga…", inicio: Date.now() });
+    const es = new EventSource(api.hfdRecargarUrl(fecha));
+    es.onmessage = (ev) => {
+      if (ev.data === "[FIN]") {
+        fin = true; es.close();
+        setRecarga((r) => ({ ...r, estado: exito ? "ok" : "error" }));
+        if (exito) generar();
+        return;
+      }
+      if (ev.data.startsWith("✓")) exito = true;
+      setRecarga((r) => ({ ...r, log: [...r.log, ev.data], ultimo: ev.data }));
+    };
+    // EventSource reintenta solo: hay que cerrarlo, o volvería a pedir la recarga.
+    es.onerror = () => { es.close(); if (!fin) setRecarga((r) => ({ ...r, estado: "cortado" })); };
+  };
+  const onGuardado = (n, fecha) => { setFilaEditar(null); setSeleccion(false); recargar(fecha, n); };
+
+  const rowAction = seleccion && corregible ? (row) => (row.fecha < hoy ? (
+    <button type="button" className="mini-btn row-action-btn" onClick={() => setFilaEditar(row)}
+      aria-label={`Corregir ${row.estacion}/${row.elemento} ${row.magnitud} ${fechaCorta(row.fecha)}`}>Corregir</button>
+  ) : null) : undefined;
+
+  const textoRecarga = !recarga ? null
+    : recarga.estado === "corriendo" ? `Recargando el ${fechaCorta(recarga.fecha)} en el ETL… ${Math.round((ahora - recarga.inicio) / 1000)} s — ${recarga.ultimo}`
+    : recarga.estado === "ok" ? `${recarga.n} valor(es) corregido(s); la tabla muestra el día recargado.`
+    : recarga.estado === "error" ? `Las correcciones se guardaron, pero la recarga falló: ${recarga.ultimo}`
+    : "Se perdió la conexión con la recarga; puede seguir en el servidor.";
+
+  const pick = (id) => { setActiveId(id); setResult(null); setError(null); setSeleccion(false); };
   const rango = !unRango || fechaInicio === fechaFin ? fechaCorta(fechaInicio)
     : `${fechaCorta(fechaInicio)} a ${fechaCorta(fechaFin)}`;
   const resumen = consolidado ? rango : [rango, magnitud, estacion.trim() && `estación «${estacion.trim()}»`].filter(Boolean).join(", ");
@@ -140,13 +194,52 @@ export default function ScadaModule() {
         {error && <div className="error-box" role="alert">{error}</div>}
         {result && result.aviso && <div className="warn-box">⚠ {result.aviso}</div>}
         {result && showTotals && result.aviso_total && <div className="warn-box">⚠ {result.aviso_total}</div>}
+        {recarga && (
+          <div className={recarga.estado === "error" ? "error-box" : "status-box"} role="status" aria-live="polite">
+            {recarga.estado === "corriendo" && <span className="spinner" />}
+            <div>
+              <div>{textoRecarga}</div>
+              {recarga.log.length > 0 && (
+                <details><summary>Ver detalle</summary><pre>{recarga.log.join("\n")}</pre></details>
+              )}
+              {recarga.estado === "error" && (
+                <button type="button" className="pill-btn" onClick={() => recargar(recarga.fecha, recarga.n)}>Reintentar recarga</button>
+              )}
+              {recarga.estado === "cortado" && <button type="button" className="pill-btn" onClick={generar}>Actualizar tabla</button>}
+              {recarga.estado !== "corriendo" && <button type="button" className="pill-btn" onClick={() => setRecarga(null)}>Cerrar aviso</button>}
+            </div>
+          </div>
+        )}
+        {seleccion && (
+          <div className="warn-box">
+            Elija la fila a corregir con el botón «Corregir» (sólo días cerrados).{" "}
+            <button type="button" className="pill-btn" onClick={() => setSeleccion(false)}>Salir</button>
+          </div>
+        )}
         <ResultBar result={result} generadoEn={generadoEn} extra={extra}
-          showTotals={showTotals} setShowTotals={setShowTotals} copied={copied} onCopiar={copiar} />
-        <ResultsTable result={result} loading={running} showTotals={showTotals}
+          showTotals={showTotals} setShowTotals={setShowTotals} copied={copied} onCopiar={copiar}>
+          {corregible && editor && (
+            <span className="sesion-hfd">Sesión: {editor}{" "}
+              <button type="button" className="pill-btn" onClick={cerrarSesion}>Cerrar sesión</button></span>
+          )}
+          {corregible && (
+            <button type="button" className="pill-btn" disabled={recarga?.estado === "corriendo"}
+              title="Corregir señales congeladas (requiere usuario autorizado)"
+              onClick={() => conSesion(() => setSeleccion(true))}>
+              {recarga?.estado === "corriendo" ? "Recargando…" : "Revisar registros"}</button>
+          )}
+        </ResultBar>
+        <ResultsTable result={result} loading={running} showTotals={showTotals} rowAction={rowAction}
           placeholder={consolidado ? "Elija la fecha y pulse «Generar reporte»."
             : "Elija fechas y magnitud y pulse «Generar reporte»."}
           emptyHint={consolidado ? "Sin datos para esta fecha." : "Sin registros para este archivo, magnitud y rango."} />
       </main>
+
+      {filaEditar && (
+        <HfdCorreccionModal fila={filaEditar} onClose={() => setFilaEditar(null)}
+          onGuardado={onGuardado} onSesionVencida={onSesionVencida} />
+      )}
+      {login && <HfdLoginDialog onClose={() => setLogin(null)} onOk={onLoginOk} />}
     </div>
   );
 }

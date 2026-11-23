@@ -83,3 +83,17 @@ export function calcTotales(result) {
   }
   return t;
 }
+
+// Lee un número escrito o pegado desde Excel (es-BO «1.234,56» o «1,4»; también «1.4»).
+// Devuelve null si está vacío y NaN si no es un número.
+export function parseNumeroBO(texto) {
+  let s = String(texto ?? "").trim().replace(/\s/g, "");
+  if (s === "") return null;
+  if (s.includes(",") && s.includes(".")) {
+    // El separador que aparece último es el decimal.
+    s = s.lastIndexOf(",") > s.lastIndexOf(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+  } else if (s.includes(",")) {
+    s = s.replace(",", ".");
+  }
+  return /^-?\d+(\.\d+)?$/.test(s) ? Number(s) : NaN;
+}

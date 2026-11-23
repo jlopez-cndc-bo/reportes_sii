@@ -1,4 +1,4 @@
-"""Conexión y pool a Oracle usando python-oracledb (solo lectura)."""
+"""Conexión y pool a Oracle usando python-oracledb (lectura; única escritura: transaccion())."""
 from contextlib import contextmanager
 from typing import Any, Iterator
 
@@ -70,6 +70,22 @@ def call_proc(proc: str, in_params: list[Any]) -> tuple[list[str], list[tuple]]:
             rows = result_cur.fetchall()
             result_cur.close()
             return cols, rows
+
+
+@contextmanager
+def transaccion() -> Iterator[oracledb.Cursor]:
+    """Cursor en una transacción: COMMIT al salir bien, ROLLBACK ante cualquier error.
+
+    Sólo lo usan las correcciones HFD (la única escritura de la app).
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            try:
+                yield cur
+                conn.commit()
+            except BaseException:
+                conn.rollback()
+                raise
 
 
 def query(sql: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:

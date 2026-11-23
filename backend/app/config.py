@@ -53,6 +53,23 @@ class Settings:
             "SISFALLA_PERSONAS_SOURCE", "F_AP_PERSONA"
         )
 
+        # Correcciones HFD (única escritura de la app): login contra Active Directory
+        # y lista de cuentas autorizadas (sAMAccountName, separadas por coma).
+        # FQDN: el certificado LDAPS es de AD-SERVER.CNDC.BO (con «ad-server» a secas no valida).
+        self.ad_server: str = os.getenv("AD_SERVER", "ad-server.cndc.bo")
+        self.ad_port: int = int(os.getenv("AD_PORT", "636"))
+        self.ad_domain: str = os.getenv("AD_DOMAIN", "cndc.bo")
+        self.ad_ca_file: str = os.getenv("AD_CA_FILE", "")  # CA interna del LDAPS, si no está en el sistema
+        self.hfd_editores: set[str] = {
+            u.strip().lower() for u in os.getenv("HFD_EDITORES", "").split(",") if u.strip()
+        }
+        # Firma de la cookie de sesión; vacía = aleatoria por proceso (un reinicio cierra las sesiones).
+        self.session_secret: str = os.getenv("SESSION_SECRET", "")
+        self.session_minutes: int = int(os.getenv("SESSION_MINUTES", "60"))
+        # Recarga del día en rs7 (rspectrum7.Web, SSE) tras guardar correcciones.
+        self.rs7_reprocess_url: str = os.getenv("RS7_REPROCESS_URL", "http://192.168.2.122:5000/api/reprocess")
+        self.rs7_reprocess_token: str = os.getenv("RS7_REPROCESS_TOKEN", "")
+
     @property
     def auth_enabled(self) -> bool:
         return bool(self.app_user and self.app_password)

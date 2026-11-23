@@ -1,13 +1,18 @@
 """Endpoints REST del módulo SCADA HFD (registros crudos del HFD, por día)."""
 from urllib.parse import quote
 
-from fastapi import APIRouter, HTTPException
+from datetime import date
+
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 from fastapi.responses import StreamingResponse
 
+from .. import sesion
 from ..export_excel import build_workbook
 from ..hfd import consolidados as C
+from ..hfd import correcciones as K
 from ..hfd import registros as R
-from ..schemas import HfdConsolidadoRequest, HfdRegistrosRequest, ReportResponse
+from ..schemas import (HfdConsolidadoRequest, HfdCorreccionRequest, HfdLoginRequest,
+                       HfdRegistrosRequest, ReportResponse)
 
 router = APIRouter(prefix="/api/hfd", tags=["hfd"])
 
@@ -96,3 +101,47 @@ def exportar_consolidado(id: str, req: HfdConsolidadoRequest):
     fname = f"HFD_{label.replace(' ', '_')}_{periodo.replace(' a ', '_')}.xlsx"
     headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"}
     return StreamingResponse(build_workbook(res, titulo, totales=True), media_type=_XLSX, headers=headers)
+
+
+# ───────────── Correcciones de operadores SCADA (única escritura de la app) ─────────────
+
+@router.post("/sesion", summary="Iniciar sesión de editor (usuario del dominio CNDC)")
+def iniciar_sesion(req: HfdLoginRequest, response: Response):
+    try:
+        return {"usuario": sesion.iniciar(req.usuario, req.password, response)}
+    except sesion.CredencialesInvalidas:
+        raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos.")
+    except sesion.NoAutorizado:
+        raise HTTPException(status_code=403, detail="Su usuario no está autorizado para corregir valores.")
+    except sesion.DirectorioNoDisponible:
+        raise HTTPException(status_code=503, detail="No se pudo contactar al directorio (Active Directory).")
+
+
+@router.get("/sesion", summary="Usuario de la sesión de editor, o null")
+def ver_sesion(hfd_sesion: str | None = Cookie(default=None)):
+    return {"usuario": sesion.leer_token(hfd_sesion)}
+
+
+@router.delete("/sesion", summary="Cerrar la sesión de editor")
+def cerrar_sesion(response: Response):
+    sesion.cerrar(response)
+    return {"usuario": None}
+
+
+@router.get("/correcciones/propuesta-smec", summary="Valores propuestos desde el medidor SMEC (MW)")
+def propuesta_smec(id_obj: int, fecha: date, _u: str = Depends(sesion.requiere_editor)):
+    return _guard(K.propuesta_smec, id_obj, fecha)
+
+
+@router.post("/correcciones", summary="Guardar correcciones de una señal y un día")
+def guardar_correcciones(req: HfdCorreccionRequest, usuario: str = Depends(sesion.requiere_editor)):
+    n = _guard(K.guardar, usuario, req.archivo, req.id_obj, req.el, req.fecha,
+               [c.model_dump() for c in req.cambios], req.motivo)
+    return {"guardadas": n}
+
+
+@router.get("/correcciones/recargar", summary="Recargar el día en rs7 (avance en vivo, SSE)")
+def recargar(fecha: date, _u: str = Depends(sesion.requiere_editor)):
+    _guard(K.validar_dia, fecha)
+    return StreamingResponse(K.recargar_dia(fecha), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

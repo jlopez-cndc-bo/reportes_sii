@@ -15,6 +15,7 @@ from datetime import date
 from typing import Any
 
 from ..db import query
+from . import correcciones
 
 MAX_DIAS = 31
 
@@ -149,6 +150,14 @@ def registros(archivo: str, magnitud: str, desde: date, hasta: date,
         }
         for r in filas
     ]
+    # Celdas corregidas por operadores (HFD_CORRECCION): {"p56": "Corregido por …"}.
+    corr = correcciones.vigentes(archivo, desde, hasta) if rows else {}
+    if corr:
+        for row in rows:
+            marcas = {f"p{i}": correcciones.nota(c) for (f, idv, el, i), c in corr.items()
+                      if f == row["fecha"] and idv == row["id"] and el == row["magnitud"]}
+            if marcas:
+                row["_corr"] = marcas
     # Sólo la generación se puede sumar entre medidas; tensiones, cotas y taps no, y en
     # transferencias cada línea se mide en sus dos extremos (se contaría dos veces).
     sin_total = archivo != "generadores"

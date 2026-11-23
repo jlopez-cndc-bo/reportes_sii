@@ -1,10 +1,11 @@
 // Cliente HTTP mínimo hacia el backend FastAPI.
 
-async function post(path, body) {
+// El error lleva `status` para distinguir, p. ej., la sesión vencida (401).
+async function send(method, path, body) {
   const res = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    method,
+    headers: body === undefined ? {} : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!res.ok) {
     let detail = `Error ${res.status}`;
@@ -12,10 +13,12 @@ async function post(path, body) {
       const j = await res.json();
       detail = j.detail || detail;
     } catch (_) {}
-    throw new Error(detail);
+    throw Object.assign(new Error(detail), { status: res.status });
   }
   return res.json();
 }
+
+const post = (path, body) => send("POST", path, body);
 
 // Descarga un .xlsx generado por el backend.
 async function download(path, body) {
@@ -68,4 +71,12 @@ export const api = {
   hfdExportar: (body) => download("/api/hfd/exportar", body),
   hfdConsolidado: (id, body) => post(`/api/hfd/consolidados/${id}`, body),
   hfdConsolidadoExportar: (id, body) => download(`/api/hfd/consolidados/${id}/exportar`, body),
+  // Correcciones HFD (operadores SCADA): sesión por cookie HttpOnly
+  hfdSesion: () => send("GET", "/api/hfd/sesion"),
+  hfdLogin: (usuario, password) => post("/api/hfd/sesion", { usuario, password }),
+  hfdLogout: () => send("DELETE", "/api/hfd/sesion"),
+  hfdPropuestaSmec: (idObj, fecha) =>
+    send("GET", `/api/hfd/correcciones/propuesta-smec?${new URLSearchParams({ id_obj: idObj, fecha })}`),
+  hfdGuardarCorrecciones: (body) => post("/api/hfd/correcciones", body),
+  hfdRecargarUrl: (fecha) => `/api/hfd/correcciones/recargar?${new URLSearchParams({ fecha })}`,
 };

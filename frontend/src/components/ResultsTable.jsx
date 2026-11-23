@@ -24,7 +24,7 @@ function fmt(value, format) {
   return String(value);
 }
 
-export default function ResultsTable({ result, loading, showTotals, emptyHint, placeholder }) {
+export default function ResultsTable({ result, loading, showTotals, emptyHint, placeholder, rowAction }) {
   const [sort, setSort] = useState({ key: null, dir: 1 });
   const [limit, setLimit] = useState(PAGE);
   // Filas expandidas en modo jerárquico (índices sobre result.rows).
@@ -207,7 +207,17 @@ export default function ResultsTable({ result, loading, showTotals, emptyHint, p
                       </td>
                     );
                   }
-                  return <td key={c.key} className={cls}>{fmt(v, c.format)}</td>;
+                  // Celda corregida por un operador (row._corr: {clave: nota}): fondo + «*» + texto
+                  // para lectores de pantalla; Copiar y Excel siguen usando sólo el número.
+                  const nota = row._corr?.[c.key];
+                  return (
+                    <td key={c.key} className={nota ? `${cls} cell-edited` : cls} title={nota}>
+                      {fmt(v, c.format)}
+                      {nota && <><span className="cell-edited-mark" aria-hidden="true">*</span>
+                        <span className="sr-only">{nota}</span></>}
+                      {idx === 0 && rowAction?.(row)}
+                    </td>
+                  );
                 })}
               </tr>
             );
