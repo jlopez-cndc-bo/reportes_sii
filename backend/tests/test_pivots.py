@@ -1,15 +1,13 @@
 """Tests de la lógica de pivoteo y transformación (funciones puras, sin BD)."""
 from datetime import datetime
 
-from app.constants import Resolucion
+from app.constants import Resolucion, TipoComponente
 from app.filters import TiposOperacion, componentes_binds
-from app.constants import TipoComponente
-from app.reports import potencias_indisponibles as pind
 from app.reports import horas_no_disponibilidad as hnd
 from app.reports import horas_tipo_operacion as hto
+from app.reports import potencias_indisponibles as pind
 from app.sqlutil import in_clause
 from app.tree import build_tree
-
 
 # ---------------------------------------------------------------- sqlutil
 

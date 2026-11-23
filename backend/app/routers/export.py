@@ -22,8 +22,14 @@ from ..schemas import (
     PotenciasIndisponiblesRequest,
     ProgramacionRequest,
 )
-from .reports import (MAX_DIAS_DIARIO, MAX_DIAS_EVENTOS, _guard, _tipos,
-                      _validar, _validar_tipo_prog)
+from .reports import (
+    MAX_DIAS_DIARIO,
+    MAX_DIAS_EVENTOS,
+    _guard,
+    _tipos,
+    _validar,
+    _validar_tipo_prog,
+)
 
 router = APIRouter(prefix="/api/exportar", tags=["export"])
 

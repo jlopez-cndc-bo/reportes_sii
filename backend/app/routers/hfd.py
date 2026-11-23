@@ -1,7 +1,6 @@
 """Endpoints REST del módulo SCADA HFD (registros crudos del HFD, por día)."""
-from urllib.parse import quote
-
 from datetime import date
+from urllib.parse import quote
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
 from fastapi.responses import StreamingResponse
@@ -11,8 +10,13 @@ from ..export_excel import build_workbook
 from ..hfd import consolidados as C
 from ..hfd import correcciones as K
 from ..hfd import registros as R
-from ..schemas import (HfdConsolidadoRequest, HfdCorreccionRequest, HfdLoginRequest,
-                       HfdRegistrosRequest, ReportResponse)
+from ..schemas import (
+    HfdConsolidadoRequest,
+    HfdCorreccionRequest,
+    HfdLoginRequest,
+    HfdRegistrosRequest,
+    ReportResponse,
+)
 
 router = APIRouter(prefix="/api/hfd", tags=["hfd"])
 

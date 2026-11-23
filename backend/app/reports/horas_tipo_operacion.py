@@ -7,8 +7,9 @@ Traduce INDISP.HorasPorTipodeOperacion. Soporta:
 El original construía SQL con cientos de columnas DECODE; aquí traemos los
 datos agrupados y pivoteamos en Python, que es equivalente y más robusto.
 """
+from collections.abc import Iterable
 from datetime import date, datetime
-from typing import Any, Iterable
+from typing import Any
 
 from ..constants import TIPO_OP_LABEL
 from ..db import query

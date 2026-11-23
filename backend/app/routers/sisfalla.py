@@ -5,8 +5,7 @@ Los 15 reportes tabulares del catálogo original (ver dossier de migración
 excluidos por decisión del usuario (datos de contacto personal, no
 operativos); `informe-falla` (informe PDF puntual) queda fuera de alcance.
 """
-from datetime import datetime
-from typing import Callable
+from collections.abc import Callable
 from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException

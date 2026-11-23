@@ -8,8 +8,9 @@ Convención de intervalos: la del archivo HFD (0..95 = 00:00..23:45).
 """
 import urllib.parse
 import urllib.request
+from collections.abc import Iterator
 from datetime import date, timedelta
-from typing import Any, Iterator
+from typing import Any
 
 import oracledb
 

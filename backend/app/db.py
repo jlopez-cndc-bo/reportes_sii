@@ -1,6 +1,7 @@
 """Conexión y pool a Oracle usando python-oracledb (lectura; única escritura: transaccion())."""
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any
 
 import oracledb
 
@@ -61,15 +62,14 @@ def call_proc(proc: str, in_params: list[Any]) -> tuple[list[str], list[tuple]]:
     Devuelve (columnas, filas). Se preservan columnas repetidas (algunos procs
     SMEC devuelven 'DIR' dos veces), por eso las filas son tuplas, no dicts.
     """
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            rc = cur.var(oracledb.DB_TYPE_CURSOR)
-            cur.callproc(proc, in_params + [rc])
-            result_cur = rc.getvalue()
-            cols = [d[0].upper() for d in result_cur.description]
-            rows = result_cur.fetchall()
-            result_cur.close()
-            return cols, rows
+    with get_connection() as conn, conn.cursor() as cur:
+        rc = cur.var(oracledb.DB_TYPE_CURSOR)
+        cur.callproc(proc, in_params + [rc])
+        result_cur = rc.getvalue()
+        cols = [d[0].upper() for d in result_cur.description]
+        rows = result_cur.fetchall()
+        result_cur.close()
+        return cols, rows
 
 
 @contextmanager
@@ -78,20 +78,18 @@ def transaccion() -> Iterator[oracledb.Cursor]:
 
     Sólo lo usan las correcciones HFD (la única escritura de la app).
     """
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            try:
-                yield cur
-                conn.commit()
-            except BaseException:
-                conn.rollback()
-                raise
+    with get_connection() as conn, conn.cursor() as cur:
+        try:
+            yield cur
+            conn.commit()
+        except BaseException:
+            conn.rollback()
+            raise
 
 
 def query(sql: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     """Ejecuta un SELECT y devuelve filas como dicts con claves en minúscula."""
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql, params or {})
-            cols = [d[0].lower() for d in cur.description]
-            return [dict(zip(cols, row)) for row in cur.fetchall()]
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute(sql, params or {})
+        cols = [d[0].lower() for d in cur.description]
+        return [dict(zip(cols, row)) for row in cur.fetchall()]

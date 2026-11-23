@@ -15,8 +15,9 @@ fecha_inicio/fecha_fin.
 
 Intervalos como el archivo HFD: p0..p95 = 00:00 … 23:45 de fecha_sng.
 """
+from collections.abc import Iterable
 from datetime import date, timedelta
-from typing import Any, Iterable
+from typing import Any
 
 from ..db import query
 from . import registros as R

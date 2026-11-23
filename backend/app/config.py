@@ -5,8 +5,8 @@ En la app original la conexión Oracle se leía del Registry
 del sistema operativo. Aquí usamos usuario/clave explícitos por .env,
 que es lo más portable para un backend web de solo lectura.
 """
-from functools import lru_cache
 import os
+from functools import lru_cache
 
 try:
     from dotenv import load_dotenv
