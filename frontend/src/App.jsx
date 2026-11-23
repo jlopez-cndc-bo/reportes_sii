@@ -11,7 +11,7 @@ import { Close } from "./icons";
 
 const MODULOS = [
   { id: "indisp", label: "Indisponibilidades" },
-  { id: "smec", label: "SMEC" },
+  { id: "smec", label: "SMEC", nombre: "Sistema de Medición Comercial" },
   { id: "sisfalla", label: "Sisfalla", beta: true },
   { id: "scada", label: "SCADA HFD", beta: true },
 ];
@@ -32,11 +32,14 @@ function HelpModal({ onClose }) {
           <p><b>Agente → Central → Unidad/Medidor.</b> Marque en el árbol el nivel que desea;
              al marcar un padre se marcan sus hijos.</p>
 
-          <h3>SMEC · Inyección vs. Retiro</h3>
+          <h3>SMEC (Sistema de Medición Comercial) · Inyección vs. Retiro</h3>
           <p><b>Inyección</b>: energía/potencia que la central entrega al sistema.
              <b> Retiro</b>: la que consume. Elija la dirección en el panel izquierdo;
              el árbol muestra sólo las centrales de esa dirección. Potencia en <b>kW</b>,
              energía en <b>kWh</b>.</p>
+          <p>Los datos de cada día se cargan al cerrar la transacción diaria, y la
+             transacción mensual recarga el mes completo: hasta ese cierre, los
+             valores del mes en curso pueden cambiar.</p>
 
           <h3>Indisponibilidades · Tipos de operación</h3>
           <ul className="codes">
@@ -66,12 +69,6 @@ function HelpModal({ onClose }) {
           <p>En Potencia 15 min/Hora, el nivel <b>Árbol</b> muestra una grilla
              jerárquica expandible Agente → Central → Medidor (use la flecha de cada fila).</p>
 
-          <h3>Indisponibilidades · Programación</h3>
-          <p>Los reportes de <b>Programación</b> (mantenimiento y Programado vs
-             Real) no usan el árbol: consideran todas las unidades con
-             programación registrada. La semana se ancla en <b>sábado</b>, como
-             en la aplicación original.</p>
-
           <h3>Sisfalla</h3>
           <p>Reportes de fallas del sistema eléctrico. No usa árbol de
              componentes: filtre por <b>falla</b> (código puntual), <b>agente</b>
@@ -95,8 +92,7 @@ function HelpModal({ onClose }) {
             <li>«Copiar» deja la tabla lista para pegar en Excel.</li>
             <li>Estando en un campo de fecha, <b>Enter</b> genera el reporte.</li>
             <li>Los valores negativos se muestran en rojo.</li>
-            <li>En el árbol, «Vigentes» oculta los componentes dados de baja
-                en el rango.</li>
+            <li>Pase el mouse sobre un reporte del menú para ver qué muestra.</li>
           </ul>
         </div>
       </div>
@@ -116,7 +112,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    try { localStorage.setItem("modulo", modulo); } catch {}
+    try { localStorage.setItem("modulo", modulo); } catch { /* almacenamiento bloqueado: no se recuerda */ }
   }, [modulo]);
 
   // Paneles comprimibles: se recuerda entre sesiones y es común a los módulos.

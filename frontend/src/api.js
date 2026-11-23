@@ -12,7 +12,7 @@ async function send(method, path, body) {
     try {
       const j = await res.json();
       detail = j.detail || detail;
-    } catch (_) {}
+    } catch { /* sin JSON: queda el "Error <status>" */ }
     throw Object.assign(new Error(detail), { status: res.status });
   }
   return res.json();
@@ -32,7 +32,7 @@ async function download(path, body) {
     try {
       const j = await res.json();
       detail = j.detail || detail;
-    } catch (_) {}
+    } catch { /* sin JSON: queda el "Error <status>" */ }
     throw new Error(detail);
   }
   const blob = await res.blob();

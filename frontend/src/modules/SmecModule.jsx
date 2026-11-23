@@ -12,26 +12,40 @@ import { Rail, QueryPanel, QSec, ResultBar, fechaCorta } from "../shell";
 import { Refresh } from "../icons";
 
 const SMEC_REPORTS = [
-  { grupo: "Potencia", id: "potencia_15min", label: "15 Minutos", interval: true, fin: false },
-  { grupo: "Potencia", id: "potencia_hora", label: "Hora", interval: true, fin: false },
-  { grupo: "Potencia", id: "potencia_max_diario", label: "Máxima Diaria", interval: false, fin: true },
-  { grupo: "Potencia", id: "potencia_max_entre_fechas", label: "Máx. entre fechas", interval: false, fin: true },
-  { grupo: "Energía", id: "energia_dia", label: "Día", interval: false, fin: true },
-  { grupo: "Energía", id: "energia_mes", label: "Mes", interval: false, fin: true },
-  { grupo: "Energía", id: "energia_anio", label: "Año", interval: false, fin: true },
-  { grupo: "Índices", id: "factor_dia", label: "Factor Día", interval: false, fin: false },
-  { grupo: "Índices", id: "factor_periodo", label: "Factor Periodo", interval: false, fin: true },
-  { grupo: "Índices", id: "capacidad_sistema", label: "Capacidad por sistema", interval: false, fin: true,
+  { grupo: "Potencia", id: "potencia_15min", descripcion: "Potencia de cada intervalo de 15 minutos.",
+    label: "15 Minutos", interval: true, fin: false },
+  { grupo: "Potencia", id: "potencia_hora", descripcion: "Potencia de cada hora: promedio de sus cuatro intervalos de 15 minutos.",
+    label: "Hora", interval: true, fin: false },
+  { grupo: "Potencia", id: "potencia_max_diario", descripcion: "La potencia más alta de cada día del rango.",
+    label: "Máxima Diaria", interval: false, fin: true },
+  { grupo: "Potencia", id: "potencia_max_entre_fechas", descripcion: "La potencia más alta de todo el rango de fechas.",
+    label: "Máx. entre fechas", interval: false, fin: true },
+  { grupo: "Energía", id: "energia_dia", descripcion: "Energía de cada día del rango, con comparación opcional.",
+    label: "Día", interval: false, fin: true },
+  { grupo: "Energía", id: "energia_mes", descripcion: "Energía de cada mes del rango, con comparación opcional.",
+    label: "Mes", interval: false, fin: true },
+  { grupo: "Energía", id: "energia_anio", descripcion: "Energía de cada año del rango, con comparación opcional.",
+    label: "Año", interval: false, fin: true },
+  { grupo: "Índices", id: "factor_dia", descripcion: "Factor de carga del día: energía ÷ (potencia máxima × 24 h).",
+    label: "Factor Día", interval: false, fin: false },
+  { grupo: "Índices", id: "factor_periodo", descripcion: "Factor de carga del rango: energía ÷ (potencia máxima × horas del rango).",
+    label: "Factor Periodo", interval: false, fin: true },
+  { grupo: "Índices", id: "capacidad_sistema", descripcion: "Capacidad efectiva de cada sistema frente a su energía: factor = energía ÷ (capacidad × horas).",
+    label: "Capacidad por sistema", interval: false, fin: true,
     soloIny: true, unidad: "capacidad en MW, energía en kWh, factor 0–1" },
-  { grupo: "Índices", id: "mix_tecnologia", label: "Mix por tecnología", interval: false, fin: true,
+  { grupo: "Índices", id: "mix_tecnologia", descripcion: "Capacidad, energía y factor del SIN agrupados por tecnología.",
+    label: "Mix por tecnología", interval: false, fin: true,
     soloIny: true, unidad: "capacidad en MW, energía en kWh, factor 0–1" },
   // SIN completo: el total no depende del árbol. arbolOpcional = el árbol sólo
   // elige qué centrales se desglosan; sinArbol = no se usa.
-  { grupo: "SIN", id: "pico_sin", label: "Pico diario", interval: false, fin: true,
+  { grupo: "SIN", id: "pico_sin", descripcion: "Para cada día, el intervalo de 15 minutos con la mayor inyección del SIN y el aporte de cada central.",
+    label: "Pico diario", interval: false, fin: true,
     soloIny: true, arbolOpcional: true },
-  { grupo: "SIN", id: "conciliacion", label: "Conciliación", interval: false, fin: true,
+  { grupo: "SIN", id: "conciliacion", descripcion: "Inyección menos retiro de cada día: pérdidas y desbalance de medición.",
+    label: "Conciliación", interval: false, fin: true,
     sinArbol: true, unidad: "kWh" },
-  { grupo: "SIN", id: "potencia_limitada", label: "Potencia limitada", interval: false, fin: true,
+  { grupo: "SIN", id: "potencia_limitada", descripcion: "Cada evento de limitación con su límite, la potencia efectiva de la unidad y lo que midió su medidor.",
+    label: "Potencia limitada", interval: false, fin: true,
     sinArbol: true, unidad: "MW" },
 ];
 const GRUPOS = ["Potencia", "Energía", "Índices", "SIN"];
@@ -218,7 +232,7 @@ export default function SmecModule() {
 
       <QueryPanel
         title={`${report.grupo} › ${report.label}`}
-        desc={<p>{esSin ? `${descSin(picoPct)}.` : `Centrales de ${dirLabel}, valores en ${unidad}.`}</p>}
+        desc={<p>{report.descripcion} {esSin ? `${descSin(picoPct)}.` : `Centrales de ${dirLabel}, valores en ${unidad}.`}</p>}
         resumen={esSin ? `${rango}, ${estadoSin.toLowerCase()}`
           : `${rango}, ${dirLabel}, ${idsSel.length} central(es)${comparar !== "ninguno" ? `, vs. ${compararLabel}` : ""}`}
         estado={esSin ? estadoSin : `${idsSel.length} central(es) seleccionada(s)`} listo={puedeGenerar}

@@ -10,7 +10,7 @@ export function usePersistedSet(key) {
     }
   });
   useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify([...value])); } catch {}
+    try { localStorage.setItem(key, JSON.stringify([...value])); } catch { /* almacenamiento bloqueado: no se recuerda */ }
   }, [key, value]);
   return [value, setValue];
 }
@@ -26,7 +26,7 @@ export function usePersisted(key, initial) {
     }
   });
   useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* almacenamiento bloqueado: no se recuerda */ }
   }, [key, value]);
   return [value, setValue];
 }

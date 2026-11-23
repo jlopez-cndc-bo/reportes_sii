@@ -84,7 +84,7 @@ export default function IndispModule() {
 
   const buildBody = () => {
     const body = activeReport.buildBody({ fechaInicio, fechaFin }, optState[activeReport.id], getIds);
-    if (!activeReport.sinArbol && (!body.unidades || body.unidades.length === 0))
+    if (!body.unidades || body.unidades.length === 0)
       throw new Error("Seleccione al menos un componente en el árbol.");
     return body;
   };
@@ -114,15 +114,11 @@ export default function IndispModule() {
     } catch (e) { setError(`No se pudo copiar: ${e.message}`); }
   };
 
-  const puedeGenerar = activeReport.sinArbol || (!treeLoading && seleccionados > 0);
-  const estadoSeleccion = activeReport.sinArbol
-    ? "Sin selección requerida"
-    : `${seleccionados} componente(s) seleccionado(s)`;
+  const puedeGenerar = !treeLoading && seleccionados > 0;
+  const estadoSeleccion = `${seleccionados} componente(s) seleccionado(s)`;
 
   const pick = (id) => { setActiveId(id); setResult(null); setError(null); };
-  const rango = activeReport.soloFecha
-    ? fechaCorta(fechaInicio)
-    : `${fechaCorta(fechaInicio)} al ${fechaCorta(fechaFin)}`;
+  const rango = `${fechaCorta(fechaInicio)} al ${fechaCorta(fechaFin)}`;
 
   return (
     <div className="layout">
@@ -131,7 +127,7 @@ export default function IndispModule() {
       <QueryPanel
         title={`${activeReport.grupo} › ${activeReport.label}`}
         desc={<p>{activeReport.descripcion}</p>}
-        resumen={activeReport.sinArbol ? rango : `${rango}, ${seleccionados} componente(s)`}
+        resumen={`${rango}, ${seleccionados} componente(s)`}
         estado={estadoSeleccion} listo={puedeGenerar}
         onGenerar={generar} running={running} puedeGenerar={puedeGenerar}
         footer={<>
@@ -140,20 +136,17 @@ export default function IndispModule() {
             title={!puedeGenerar ? "Seleccione al menos un componente para generar el reporte." : undefined}>
             {running ? "Generando…" : "Generar reporte"}</button>
           <button className="btn" onClick={exportar}
-            disabled={exporting || (!activeReport.sinArbol && (treeLoading || seleccionados === 0))}>
+            disabled={exporting || treeLoading || seleccionados === 0}>
             {exporting ? "Exportando…" : "Exportar a Excel"}</button>
         </>}>
-        <QSec title={activeReport.soloFecha ? "Fecha" : "Fechas"}>
+        <QSec title="Fechas">
           <div className="dates">
-            <label className="dfield"><span>{activeReport.soloFecha ? "Fecha" : "Inicio"}</span>
-              <input type="date" value={fechaInicio} max={activeReport.soloFecha ? undefined : fechaFin} onKeyDown={onKey} onChange={(e) => setFechaInicio(e.target.value)} /></label>
-            {!activeReport.soloFecha && (
-              <label className="dfield"><span>Final</span>
-                <input type="date" value={fechaFin} min={fechaInicio} onKeyDown={onKey} onChange={(e) => setFechaFin(e.target.value)} /></label>
-            )}
+            <label className="dfield"><span>Inicio</span>
+              <input type="date" value={fechaInicio} max={fechaFin} onKeyDown={onKey} onChange={(e) => setFechaInicio(e.target.value)} /></label>
+            <label className="dfield"><span>Final</span>
+              <input type="date" value={fechaFin} min={fechaInicio} onKeyDown={onKey} onChange={(e) => setFechaFin(e.target.value)} /></label>
           </div>
-          <DatePresets single={activeReport.soloFecha}
-            onPick={(ini, fin) => { setFechaInicio(ini); if (!activeReport.soloFecha) setFechaFin(fin); }} />
+          <DatePresets onPick={(ini, fin) => { setFechaInicio(ini); setFechaFin(fin); }} />
         </QSec>
 
         {activeReport.options && activeReport.options.length > 0 && (
@@ -165,12 +158,6 @@ export default function IndispModule() {
 
         <QSec title="Componentes" className="qsec--tree"
           aside={<span className="qsec-count">{seleccionados} seleccionado(s)</span>}>
-          {activeReport.sinArbol && (
-            <div className="tree-note">
-              Este reporte no usa el árbol: considera todas las unidades con
-              programación registrada.
-            </div>
-          )}
           <div className="tree-tools">
             <input className="tree-search" type="search" aria-label="Buscar componente" placeholder="Buscar componente…" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
             <button type="button" className="pill-btn" onClick={() => setAll(true)}>Todos</button>

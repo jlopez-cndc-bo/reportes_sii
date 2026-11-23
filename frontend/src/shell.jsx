@@ -4,7 +4,7 @@
 // comparte por contexto para que sea el mismo en los tres módulos.
 import { createContext, useContext } from "react";
 import cndcLogo from "./assets/cndc-logo-azul.png";
-import { Chevrons } from "./icons";
+import { Chevrons, Help } from "./icons";
 import { tieneTotales } from "./numFormat";
 
 export const ShellContext = createContext(null);
@@ -30,6 +30,7 @@ export function Rail({ grupos, reports, activeId, onPick }) {
     return (
       <div className="strip strip--rail">
         <IconBtn label="Expandir navegación" onClick={sh.toggleRail}><Chevrons dir="right" /></IconBtn>
+        <IconBtn label="Guía rápida" onClick={sh.openHelp}><Help /></IconBtn>
         <span className="strip-text">
           {mod.label}{active ? `, ${active.grupo.toLowerCase()}: ${active.label}` : ""}
         </span>
@@ -49,7 +50,7 @@ export function Rail({ grupos, reports, activeId, onPick }) {
       <div className="rail-mods">
         {sh.modulos.map((m) => (
           <button key={m.id} type="button" className="mod" aria-pressed={m.id === sh.modulo}
-            title={m.beta ? `${m.label} (en desarrollo)` : undefined}
+            title={[m.nombre, m.beta && "en desarrollo"].filter(Boolean).join(" · ") || undefined}
             onClick={() => sh.setModulo(m.id)}>
             {m.label}
             {m.beta && <span className="mod-beta">beta</span>}
@@ -61,7 +62,7 @@ export function Rail({ grupos, reports, activeId, onPick }) {
           <div key={g} role="group" aria-label={g}>
             <div className="rail-group">{g}</div>
             {reports.filter((r) => r.grupo === g).map((r) => (
-              <button key={r.id} type="button" className="rep"
+              <button key={r.id} type="button" className="rep" title={r.descripcion}
                 aria-current={r.id === activeId ? "page" : undefined}
                 onClick={() => onPick(r.id)}>{r.label}</button>
             ))}

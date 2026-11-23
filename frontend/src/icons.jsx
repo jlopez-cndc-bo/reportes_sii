@@ -32,6 +32,17 @@ export function Refresh({ size = 14 }) {
   );
 }
 
+// Ayuda: signo de pregunta dentro de un círculo.
+export function Help({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" {...base}>
+      <circle cx="8" cy="8" r="6.2" />
+      <path d="M6.2 6.3a1.9 1.9 0 113 1.5c-.7.4-1.2.8-1.2 1.6" />
+      <path d="M8 11.4v.1" />
+    </svg>
+  );
+}
+
 export function Close({ size = 14 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 14 14" {...base}>
