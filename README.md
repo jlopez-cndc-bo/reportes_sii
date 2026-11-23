@@ -1,6 +1,7 @@
-# Reportes SII — Indisponibilidades (versión web)
+# Reportes SII (versión web)
 
-Migración a web del módulo **INDISP** de la aplicación de escritorio.
+Migración a web de la aplicación de escritorio. Primer módulo: **Reporte de la Operación**
+(antes «Indisponibilidades», módulo **INDISP**).
 Backend **FastAPI** (Python) + frontend **React** (Vite). Sólo lectura sobre Oracle.
 
 ## Estructura
@@ -31,7 +32,7 @@ copy .env.example .env
 ./.venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
-Prueba de humo contra la base (valida los 5 reportes):
+Prueba de humo contra la base (valida los 3 reportes):
 
 ```powershell
 ./.venv/Scripts/python.exe smoke_test.py --inicio 2025-01-01 --fin 2025-01-07
@@ -68,15 +69,13 @@ cd web/backend
 - Autenticación HTTP Basic **opcional**: definir `APP_USER` y `APP_PASSWORD` en `.env`.
 - El `.env` está en `.gitignore` (no se versiona).
 
-## Reportes migrados
+## Reportes migrados: Reporte de la Operación
 
-| # | Reporte | Endpoint |
-|---|---------|----------|
-| 1 | Potencias Disponibles | `POST /api/reportes/potencias-disponibles` |
-| 2 | Potencias Indisponibles | `POST /api/reportes/potencias-indisponibles` |
-| 3 | Horas de Disponibilidad | `POST /api/reportes/horas-disponibilidad` |
-| 4 | Horas de No Disponibilidad | `POST /api/reportes/horas-no-disponibilidad` |
-| 5 | Horas por Tipo de Operación | `POST /api/reportes/horas-tipo-operacion` |
+| Grupo | Reporte | Endpoint |
+|---|---|---|
+| Detalle | Disponibilidad por componente | `POST /api/reportes/horas-disponibilidad` |
+| Detalle | Eventos | `POST /api/reportes/horas-no-disponibilidad` |
+| Detalle | Horas por tipo de operación | `POST /api/reportes/horas-tipo-operacion` |
 | — | Árbol de componentes | `POST /api/arbol` |
 | — | Exportar a Excel (cada reporte) | `POST /api/exportar/{reporte}` |
 

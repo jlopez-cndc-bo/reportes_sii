@@ -1,4 +1,4 @@
-// Metadatos de los 5 reportes: opciones específicas y armado del request.
+// Metadatos de los 3 reportes: opciones específicas y armado del request.
 // getIds(tipo) devuelve los id_objeto seleccionados del árbol para un tipo
 // de nodo ("componente" | "central" | "agente").
 //
@@ -29,82 +29,16 @@ const maskForOps = (ops) =>
 
 export const REPORTS = [
   {
-    id: "potencias-disponibles",
-    label: "Disponibles",
-    grupo: "Potencias",
-    endpoint: "potencias-disponibles",
-    // Consulta disponibilidad con Op.Normal + Programada + Forzada.
-    componentesFor: () => maskForOps([152, 155, 156]),
-    descripcion:
-      "Disponibilidad (%) y potencia por Unidad, Central o Agente.",
-    defaults: { nivel: "unidad" },
-    options: [
-      {
-        type: "radio",
-        key: "nivel",
-        label: "Nivel",
-        options: [
-          { value: "unidad", label: "Unidad" },
-          { value: "central", label: "Central" },
-        ],
-      },
-    ],
-    buildBody: (shared, opt, getIds) => {
-      const tipo = opt.nivel === "central" ? "central" : "componente";
-      return {
-        fecha_inicio: shared.fechaInicio,
-        fecha_fin: shared.fechaFin,
-        nivel: opt.nivel,
-        unidades: getIds(tipo),
-      };
-    },
-  },
-  {
-    id: "potencias-indisponibles",
-    label: "Indisponibles",
-    grupo: "Potencias",
-    endpoint: "potencias-indisponibles",
-    componentesFor: (o) => maskForOps([o.ip && 155, o.inf && 156].filter(Boolean)),
-    descripcion:
-      "Potencia indisponible por generador, pivoteada por intervalo de tiempo.",
-    defaults: { resolucion: "minuto", intervalo_minutos: 15, horas: 1, ip: true, inf: true },
-    options: [
-      {
-        type: "radio",
-        key: "resolucion",
-        label: "Resolución",
-        options: [
-          { value: "minuto", label: "Minutos" },
-          { value: "hora", label: "Horas" },
-        ],
-      },
-      { type: "number", key: "intervalo_minutos", label: "Minutos", min: 1, max: 1440, showIf: (o) => o.resolucion === "minuto" },
-      { type: "number", key: "horas", label: "Horas", min: 1, max: 24, showIf: (o) => o.resolucion === "hora" },
-      { type: "checkbox", key: "ip", label: "Programada (155)" },
-      { type: "checkbox", key: "inf", label: "Forzada (156)" },
-    ],
-    buildBody: (shared, opt, getIds) => ({
-      fecha_inicio: shared.fechaInicio,
-      fecha_fin: shared.fechaFin,
-      unidades: getIds("componente"),
-      resolucion: opt.resolucion,
-      intervalo_minutos: Number(opt.intervalo_minutos),
-      horas: Number(opt.horas),
-      ip: opt.ip,
-      inf: opt.inf,
-    }),
-  },
-  {
     id: "horas-disponibilidad",
-    label: "Disponibilidad",
-    grupo: "Horas",
+    label: "Disponibilidad por componente",
+    grupo: "Detalle",
     endpoint: "horas-disponibilidad",
     componentesFor: (o) => maskForOps([o.ip && 155, o.inf && 156].filter(Boolean)),
-    descripcion: "% de disponibilidad, horas desconectadas y horas del período.",
+    descripcion: "Componentes con indisponibilidad programada o forzada: % del período disponible y horas desconectadas.",
     defaults: { ip: true, inf: true },
     options: [
-      { type: "checkbox", key: "ip", label: "Programada (155)" },
-      { type: "checkbox", key: "inf", label: "Forzada (156)" },
+      { type: "checkbox", key: "ip", label: "Programada" },
+      { type: "checkbox", key: "inf", label: "Forzada" },
     ],
     buildBody: (shared, opt, getIds) => ({
       fecha_inicio: shared.fechaInicio,
@@ -116,19 +50,23 @@ export const REPORTS = [
   },
   {
     id: "horas-no-disponibilidad",
-    label: "No Disponibilidad",
-    grupo: "Horas",
+    label: "Eventos",
+    grupo: "Detalle",
     endpoint: "horas-no-disponibilidad",
     componentesFor: (o) => maskForOps(
       [o.ip && 155, o.inf && 156, o.opn && 152, o.plim && 153].filter(Boolean)),
-    descripcion: "Detalle de eventos: ingreso/salida, causa, restricción de gas.",
+    descripcion: "Cada evento con su hora de ingreso y salida, tipo de operación, causa y restricción de gas.",
     defaults: { ip: true, inf: true, opn: false, plim: false, agregado: false },
     options: [
-      { type: "checkbox", key: "ip", label: "Programada (155)" },
-      { type: "checkbox", key: "inf", label: "Forzada (156)" },
-      { type: "checkbox", key: "opn", label: "Op. Normal (152)" },
-      { type: "checkbox", key: "plim", label: "Pot. Limitada (153)" },
-      { type: "checkbox", key: "agregado", label: "Agregar eventos contiguos" },
+      { type: "checkbox", key: "ip", label: "Programada" },
+      { type: "checkbox", key: "inf", label: "Forzada" },
+      { type: "checkbox", key: "opn", label: "Operación normal" },
+      { type: "checkbox", key: "plim", label: "Potencia limitada" },
+      {
+        type: "checkbox", key: "agregado", wide: true,
+        label: "Unir eventos consecutivos del mismo componente",
+        title: "Une en una sola fila los eventos de un componente cuando uno empieza a la misma hora en que termina el anterior (por ejemplo, un evento partido por día). Suma las horas y conserva el tipo y la causa del primero.",
+      },
     ],
     buildBody: (shared, opt, getIds) => ({
       fecha_inicio: shared.fechaInicio,
@@ -143,13 +81,13 @@ export const REPORTS = [
   },
   {
     id: "horas-tipo-operacion",
-    label: "Por Tipo de Operación",
-    grupo: "Horas",
+    label: "Horas por tipo de operación",
+    grupo: "Detalle",
     endpoint: "horas-tipo-operacion",
     componentesFor: (o) => maskForOps(
       [o.op_normal && 152, o.pot_limitada && 153, o.programada && 155,
        o.forzada && 156, o.prueba && 158, o.reprogramacion && 192].filter(Boolean)),
-    descripcion: "Horas agregadas o desagregadas por tipo, en día / mes / año.",
+    descripcion: "Horas de cada componente en los tipos de operación marcados, por día, mes o año: una columna con el total o una por tipo.",
     defaults: {
       periodo: "dia",
       modo: "agregado",
@@ -166,18 +104,18 @@ export const REPORTS = [
         ],
       },
       {
-        type: "radio", key: "modo", label: "Modo",
+        type: "radio", key: "modo", label: "Columnas",
         options: [
-          { value: "agregado", label: "Agregado" },
-          { value: "desagregado", label: "Desagregado" },
+          { value: "agregado", label: "Total" },
+          { value: "desagregado", label: "Una por tipo" },
         ],
       },
-      { type: "checkbox", key: "op_normal", label: "Op. Normal (152)" },
-      { type: "checkbox", key: "pot_limitada", label: "Pot. Limitada (153)" },
-      { type: "checkbox", key: "programada", label: "Programada (155)" },
-      { type: "checkbox", key: "forzada", label: "Forzada (156)" },
-      { type: "checkbox", key: "prueba", label: "Prueba (158)" },
-      { type: "checkbox", key: "reprogramacion", label: "Reprogramación (192)" },
+      { type: "checkbox", key: "op_normal", label: "Operación normal" },
+      { type: "checkbox", key: "pot_limitada", label: "Potencia limitada" },
+      { type: "checkbox", key: "programada", label: "Programada" },
+      { type: "checkbox", key: "forzada", label: "Forzada" },
+      { type: "checkbox", key: "prueba", label: "Prueba" },
+      { type: "checkbox", key: "reprogramacion", label: "Reprogramación" },
     ],
     buildBody: (shared, opt, getIds) => ({
       fecha_inicio: shared.fechaInicio,

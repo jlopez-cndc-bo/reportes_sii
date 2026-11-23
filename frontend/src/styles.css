@@ -180,13 +180,9 @@ button:disabled { cursor: not-allowed; }
 .field-with-action input { flex: 1; min-width: 0; }
 .field-with-action .pill-btn { min-height: 34px; border-radius: 17px; }
 
-/* Presets de fecha */
-.date-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.date-presets button {
-  min-height: 26px; padding: 0 11px; border: 1px solid var(--line-strong); border-radius: 13px;
-  background: var(--panel); font-size: 12px;
-}
-.date-presets button:hover { border-color: var(--brand); color: var(--brand-dark); }
+/* Presets de fecha: una fila segmentada; se marca el rango que coincide */
+.date-presets { display: flex; width: fit-content; max-width: 100%; margin-top: 8px; }
+.date-presets .seg { min-height: 24px; padding: 0 8px; font-size: 12px; white-space: nowrap; }
 
 /* ── Opciones del reporte: apiladas, nunca en fila ── */
 .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; align-items: start; }
@@ -213,6 +209,7 @@ button:disabled { cursor: not-allowed; }
 .tree-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .tree-tools .tree-search { flex: 1 1 100%; min-width: 0; height: 30px; font-size: 13px; }
 .tree-count { margin-top: 6px; font-size: 12px; color: var(--muted); }
+.tree-sum { margin-left: 6px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .tree-refresh { color: var(--brand); }
 .tree-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 8px; }
 .tree-wrap--refreshing { opacity: .7; }

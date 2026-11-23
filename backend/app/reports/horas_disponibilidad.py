@@ -1,4 +1,4 @@
-"""Reporte 3: Horas de Disponibilidad (% disponibilidad agregado por componente).
+"""Disponibilidad por componente (% disponible y horas desconectadas).
 
 Traduce INDISP.HorasDisponibilidad. El rango va de TRUNC(f1) a TRUNC(f2)+1 día.
 Sólo considera indisponibilidades programadas (155) y forzadas (156).

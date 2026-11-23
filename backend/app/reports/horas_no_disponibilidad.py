@@ -1,4 +1,4 @@
-"""Reporte 4: Horas de No Disponibilidad (detalle de eventos por componente).
+"""Eventos (detalle de eventos por componente).
 
 Traduce INDISP.HorasNoDisponibilidad (Get_SQL + UnirEventor opcional).
 Muestra cada evento con ingreso/salida, tipo, causa, restricción de gas y

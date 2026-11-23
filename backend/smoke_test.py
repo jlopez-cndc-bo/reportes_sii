@@ -1,4 +1,4 @@
-"""Prueba de humo contra Oracle: árbol + los 5 reportes.
+"""Prueba de humo contra Oracle: árbol + los 3 reportes.
 
 Uso (desde web/backend, con .env configurado):
     .venv/Scripts/python.exe smoke_test.py --inicio 2025-01-01 --fin 2025-01-07
@@ -6,15 +6,13 @@ Uso (desde web/backend, con .env configurado):
 import argparse
 from datetime import datetime
 
-from app.constants import Resolucion, TipoComponente
+from app.constants import TipoComponente
 from app.db import init_pool, pool_ready
 from app.filters import TiposOperacion
 from app.reports import (
     horas_disponibilidad,
     horas_no_disponibilidad,
     horas_tipo_operacion,
-    potencias_disponibles,
-    potencias_indisponibles,
 )
 from app.tree import get_component_rows, get_tree
 
@@ -50,7 +48,6 @@ def main():
     print(f"   raíces: {len(tree)}")
 
     unidades = _ids_desde_arbol(tree, "componente", [])[: args.limite]
-    centrales = _ids_desde_arbol(tree, "central", [])[: args.limite]
     print(f"   unidades de prueba: {unidades}")
 
     if not unidades:
@@ -63,18 +60,11 @@ def main():
         if res["rows"]:
             print(f"   ejemplo: {res['rows'][0]}")
 
-    show("Potencias Disponibles (unidad)",
-         potencias_disponibles.report("unidad", f1, f2, unidades))
-    if centrales:
-        show("Potencias Disponibles (central)",
-             potencias_disponibles.report("central", f1, f2, centrales))
-    show("Potencias Indisponibles (15 min)",
-         potencias_indisponibles.report(f1, f2, Resolucion.INTERVALO, 15, unidades, True, True))
-    show("Horas de Disponibilidad",
+    show("Disponibilidad por componente",
          horas_disponibilidad.report(f1, f2, unidades, True, True))
-    show("Horas de No Disponibilidad",
+    show("Eventos",
          horas_no_disponibilidad.report(f1, f2, unidades, True, True, False, False, False))
-    show("Horas por Tipo de Operación (día/agregado)",
+    show("Horas por tipo de operación (día/agregado)",
          horas_tipo_operacion.report("dia", "agregado", f1, f2, unidades, tops))
     print("\n[OK] Smoke test finalizado.")
 

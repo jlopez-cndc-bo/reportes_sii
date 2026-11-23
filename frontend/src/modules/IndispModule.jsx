@@ -13,7 +13,7 @@ import { Rail, QueryPanel, QSec, ResultBar, fechaCorta } from "../shell";
 import { Refresh } from "../icons";
 
 export default function IndispModule() {
-  const [fechaInicio, setFechaInicio] = useState(isoDaysAgo(7));
+  const [fechaInicio, setFechaInicio] = useState(isoDaysAgo(6)); // = atajo «7 d»
   const [fechaFin, setFechaFin] = useState(isoDaysAgo(0));
 
   const [tree, setTree] = useState([]);
@@ -146,7 +146,7 @@ export default function IndispModule() {
             <label className="dfield"><span>Final</span>
               <input type="date" value={fechaFin} min={fechaInicio} onKeyDown={onKey} onChange={(e) => setFechaFin(e.target.value)} /></label>
           </div>
-          <DatePresets onPick={(ini, fin) => { setFechaInicio(ini); setFechaFin(fin); }} />
+          <DatePresets ini={fechaInicio} fin={fechaFin} onPick={(ini, fin) => { setFechaInicio(ini); setFechaFin(fin); }} />
         </QSec>
 
         {activeReport.options && activeReport.options.length > 0 && (
@@ -172,7 +172,7 @@ export default function IndispModule() {
           {tree.length === 0
             ? <div className="tree-empty">{treeLoading ? "Cargando…" : "Sin componentes."}</div>
             : <div className={`tree-wrap ${treeLoading ? "tree-wrap--refreshing" : ""}`}>
-                <Tree nodes={visibleTree} checked={checked} onToggle={onToggle} filter={filtro} />
+                <Tree nodes={visibleTree} checked={checked} onToggle={onToggle} filter={filtro} collapsed />
               </div>}
         </QSec>
       </QueryPanel>

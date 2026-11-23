@@ -1,4 +1,4 @@
-"""Punto de entrada FastAPI del backend de indisponibilidades."""
+"""Punto de entrada FastAPI del backend de Reportes CNDC."""
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
 
 
 _DESCRIPTION = """
-API de reportes del CNDC (Indisponibilidades + SMEC + Sisfalla). Además de
+API de reportes del CNDC (Reporte de la Operación + SMEC + Sisfalla + SCADA HFD). Además de
 alimentar la UI web, está pensada para que sistemas internos consuman estos
 mismos datos y automaticen sus propios procesos: todos los endpoints bajo
 `/api` devuelven JSON (o un .xlsx en `/api/exportar/*`, `/api/smec/exportar`
@@ -36,7 +36,7 @@ contra Oracle.
 _TAGS_METADATA = [
     {
         "name": "indisponibilidades",
-        "description": "Los 5 reportes de indisponibilidad de equipos + árbol de componentes (módulo INDISP).",
+        "description": "Reporte de la Operación (antes Indisponibilidades, módulo INDISP): disponibilidad, no disponibilidad y horas por tipo de operación de cada componente, programación de mantenimiento y árbol de componentes.",
     },
     {
         "name": "smec",
@@ -44,7 +44,7 @@ _TAGS_METADATA = [
     },
     {
         "name": "export",
-        "description": "Mismos reportes de indisponibilidades, como archivo .xlsx descargable.",
+        "description": "Los reportes del Reporte de la Operación, como archivo .xlsx descargable.",
     },
     {
         "name": "sisfalla",

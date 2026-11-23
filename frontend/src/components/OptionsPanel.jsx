@@ -26,7 +26,7 @@ export default function OptionsPanel({ options, values, onChange }) {
         }
         if (opt.type === "checkbox") {
           return (
-            <label className="opt-check" key={opt.key}>
+            <label className={`opt-check${opt.wide ? " opt-check--wide" : ""}`} key={opt.key} title={opt.title}>
               <input
                 type="checkbox"
                 checked={!!values[opt.key]}

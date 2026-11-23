@@ -90,38 +90,8 @@ class ReportResponse(BaseModel):
     )
 
 
-class PotenciasDisponiblesRequest(BaseModel):
-    """Reporte 1: Potencias Disponibles, agregadas por unidad/central/agente."""
-
-    fecha_inicio: datetime = Field(..., examples=["2026-06-01T00:00:00"])
-    fecha_fin: datetime = Field(..., examples=["2026-06-30T23:59:59"])
-    unidades: list[int] = Field(
-        default_factory=list,
-        description="IDs de objeto (unidad generadora) a incluir; vacío = todas.",
-    )
-    nivel: str = Field(
-        "unidad", description="Nivel de agregación: 'unidad' | 'central' | 'agente'."
-    )
-
-
-class PotenciasIndisponiblesRequest(BaseModel):
-    """Reporte 2: Potencias Indisponibles, pivoteadas en columnas por intervalo."""
-
-    fecha_inicio: datetime = Field(..., examples=["2026-06-01T00:00:00"])
-    fecha_fin: datetime = Field(..., examples=["2026-06-01T23:59:59"])
-    unidades: list[int] = Field(default_factory=list, description="IDs de unidad; vacío = todas.")
-    resolucion: str = Field(
-        "minuto",
-        description="'minuto': columnas de `intervalo_minutos` minutos. 'hora': columnas de `horas` horas.",
-    )
-    intervalo_minutos: int = Field(15, description="Tamaño del intervalo en minutos (si resolucion='minuto').")
-    horas: int = Field(1, description="Horas por columna (si resolucion='hora').")
-    ip: bool = Field(True, description="Incluir indisponibilidad Programada (155).")
-    inf: bool = Field(True, description="Incluir indisponibilidad Forzada (156).")
-
-
 class HorasDisponibilidadRequest(BaseModel):
-    """Reporte 3: Horas de Disponibilidad por componente, en el rango dado."""
+    """Disponibilidad por componente, en el rango dado."""
 
     fecha_inicio: datetime = Field(..., examples=["2026-06-01T00:00:00"])
     fecha_fin: datetime = Field(..., examples=["2026-06-30T23:59:59"])
@@ -131,7 +101,7 @@ class HorasDisponibilidadRequest(BaseModel):
 
 
 class HorasNoDisponibilidadRequest(BaseModel):
-    """Reporte 4: Horas de No Disponibilidad (detalle de eventos por componente)."""
+    """Eventos: detalle de eventos por componente."""
 
     fecha_inicio: datetime = Field(..., examples=["2026-06-01T00:00:00"])
     fecha_fin: datetime = Field(..., examples=["2026-06-30T23:59:59"])
@@ -146,7 +116,7 @@ class HorasNoDisponibilidadRequest(BaseModel):
 
 
 class HorasTipoOperacionRequest(BaseModel):
-    """Reporte 5: Horas por Tipo de Operación, agregadas o desglosadas por tipo."""
+    """Horas por tipo de operación, agregadas o desglosadas por tipo."""
 
     fecha_inicio: datetime = Field(..., examples=["2026-01-01T00:00:00"])
     fecha_fin: datetime = Field(..., examples=["2026-06-30T23:59:59"])

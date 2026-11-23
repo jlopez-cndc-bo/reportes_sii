@@ -1,11 +1,10 @@
 """Tests de la lógica de pivoteo y transformación (funciones puras, sin BD)."""
 from datetime import datetime
 
-from app.constants import Resolucion, TipoComponente
+from app.constants import TipoComponente
 from app.filters import TiposOperacion, componentes_binds
 from app.reports import horas_no_disponibilidad as hnd
 from app.reports import horas_tipo_operacion as hto
-from app.reports import potencias_indisponibles as pind
 from app.sqlutil import in_clause
 from app.tree import build_tree
 
@@ -21,55 +20,6 @@ def test_in_clause_vacio():
     sql, binds = in_clause([])
     assert sql == "(NULL)"
     assert binds == {}
-
-
-# ------------------------------------------------ potencias indisponibles
-
-def test_num_columnas_dia_15min():
-    n = pind._num_columnas(datetime(2025, 1, 1), datetime(2025, 1, 1), Resolucion.INTERVALO, 15)
-    assert n == 96  # 24*60/15
-
-
-def test_num_columnas_hora():
-    n = pind._num_columnas(datetime(2025, 1, 1), datetime(2025, 1, 2), Resolucion.HORA, 60)
-    assert n == 48  # 2 días * 24
-
-
-def test_pivot_pinta_rango():
-    rows = [{"id_elemento": 7, "codigo_objeto": "GEN1", "potencia": 50.0,
-             "inter_ingreso": 2, "intersalida": 5}]
-    piv = pind._pivot(rows, 8)
-    assert [piv[0][f"I{i}"] for i in range(8)] == [0, 0, 50.0, 50.0, 50.0, 0, 0, 0]
-
-
-def test_pivot_potencia_nula_no_contamina_baseline():
-    rows = [{"id_elemento": 7, "codigo_objeto": "GEN1", "potencia": None,
-             "inter_ingreso": 1, "intersalida": 2}]
-    piv = pind._pivot(rows, 4)
-    # baseline siempre 0 (sin evento = disponible); solo la celda del evento
-    # con potencia desconocida queda None (el frontend/export la muestra '-').
-    assert piv[0]["I0"] == 0
-    assert piv[0]["I1"] is None
-    assert piv[0]["I2"] == 0
-    assert piv[0]["I3"] == 0
-
-
-def test_pivot_multiple_generadores():
-    rows = [
-        {"id_elemento": 1, "codigo_objeto": "A", "potencia": 10, "inter_ingreso": 0, "intersalida": 1},
-        {"id_elemento": 2, "codigo_objeto": "B", "potencia": 20, "inter_ingreso": 1, "intersalida": 2},
-    ]
-    piv = pind._pivot(rows, 3)
-    assert len(piv) == 2
-    assert piv[0]["codigo_objeto"] == "A" and piv[0]["I0"] == 10
-    assert piv[1]["codigo_objeto"] == "B" and piv[1]["I1"] == 20
-
-
-def test_columnas_headers():
-    cols = pind._columnas(datetime(2025, 1, 1), 3, 15)
-    assert cols[0]["label"] == "Generador"
-    assert cols[1]["label"] == "01/01/2025 00:00"  # primer intervalo muestra fecha
-    assert cols[2]["label"] == "00:15"
 
 
 # ------------------------------------------------ unir eventos (rpt 4)

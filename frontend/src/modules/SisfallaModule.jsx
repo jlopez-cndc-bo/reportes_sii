@@ -149,7 +149,7 @@ export default function SisfallaModule() {
                 </div>
               )}
               {campos.desde && campos.hasta && !gestionActiva && (
-                <DatePresets onPick={(ini, fin) => { setFiltro("desde", ini); setFiltro("hasta", fin); }} />
+                <DatePresets ini={filtros.desde} fin={filtros.hasta} onPick={(ini, fin) => { setFiltro("desde", ini); setFiltro("hasta", fin); }} />
               )}
             </div>
           )}

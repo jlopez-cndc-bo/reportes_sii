@@ -1,4 +1,4 @@
-"""Reporte 5: Horas por Tipo de Operación.
+"""Horas por tipo de operación.
 
 Traduce INDISP.HorasPorTipodeOperacion. Soporta:
   - período: día / mes / año
@@ -131,7 +131,7 @@ def report(
         if desagregado:
             for tid in tipos_activos:
                 col = f"{key}:{tid}"
-                col_defs.append((col, f"{hdr}:{TIPO_OP_LABEL.get(tid, tid)}"))
+                col_defs.append((col, f"{hdr} {TIPO_OP_LABEL.get(tid, tid)}"))
         else:
             col_defs.append((key, hdr))
     for col, hdr in col_defs:

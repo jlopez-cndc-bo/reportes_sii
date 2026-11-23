@@ -16,13 +16,15 @@ class TipoOperacion(IntEnum):
 
 
 # Etiquetas cortas usadas en encabezados (como en el DataGrid original).
+# Encabezado de columna en Horas por tipo de operación (columnas «Una por tipo»);
+# mismos nombres que las casillas del frontend.
 TIPO_OP_LABEL = {
-    152: "ONO",
-    153: "POT LIM",
-    155: "PROG",
-    156: "FOR",
-    158: "PRUE",
-    192: "REE",
+    152: "Operación normal",
+    153: "Potencia limitada",
+    155: "Programada",
+    156: "Forzada",
+    158: "Prueba",
+    192: "Reprogramación",
 }
 
 # Etiqueta larga (usada en Horas de No Disponibilidad).
@@ -58,13 +60,3 @@ COMPONENTE_CTE = {
     TipoComponente.TRANSFOR: "TRANSFOR",
 }
 
-
-class NivelReporte(str):
-    """Nivel de agrupación de Potencias Disponibles."""
-
-
-# Resolución temporal para reportes pivoteados (Potencias Indisponibles).
-class Resolucion(IntEnum):
-    INTERVALO = 1  # columnas por intervalo de N minutos
-    HORA = 2       # columnas por hora
-    DIA = 3        # columnas por día

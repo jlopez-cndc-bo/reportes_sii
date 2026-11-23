@@ -1,22 +1,18 @@
 """Endpoints REST del módulo de indisponibilidades."""
 from fastapi import APIRouter, HTTPException
 
-from ..constants import Resolucion, TipoComponente
+from ..constants import TipoComponente
 from ..filters import TiposOperacion
 from ..reports import (
     horas_disponibilidad,
     horas_no_disponibilidad,
     horas_tipo_operacion,
-    potencias_disponibles,
-    potencias_indisponibles,
     programacion,
 )
 from ..schemas import (
     HorasDisponibilidadRequest,
     HorasNoDisponibilidadRequest,
     HorasTipoOperacionRequest,
-    PotenciasDisponiblesRequest,
-    PotenciasIndisponiblesRequest,
     ProgramacionRequest,
     ReportResponse,
     TiposOperacionFlags,
@@ -98,44 +94,13 @@ def arbol(req: TreeRequest):
 
 
 @router.post(
-    "/reportes/potencias-disponibles",
-    response_model=ReportResponse,
-    summary="Reporte 1: Potencias Disponibles",
-)
-def rpt_potencias_disponibles(req: PotenciasDisponiblesRequest):
-    _validar(req.fecha_inicio, req.fecha_fin)
-    return _guard(
-        potencias_disponibles.report,
-        req.nivel, req.fecha_inicio, req.fecha_fin, req.unidades,
-    )
-
-
-@router.post(
-    "/reportes/potencias-indisponibles",
-    response_model=ReportResponse,
-    summary="Reporte 2: Potencias Indisponibles",
-    description="Pivoteado por intervalo de tiempo (columnas I0..I(n-1)).",
-)
-def rpt_potencias_indisponibles(req: PotenciasIndisponiblesRequest):
-    _validar(req.fecha_inicio, req.fecha_fin)
-    if req.resolucion == "hora":
-        tipo = Resolucion.HORA
-        intervalo = req.horas * 60
-    else:
-        tipo = Resolucion.INTERVALO
-        intervalo = req.intervalo_minutos
-    return _guard(
-        potencias_indisponibles.report,
-        req.fecha_inicio, req.fecha_fin, tipo, intervalo, req.unidades,
-        req.ip, req.inf,
-    )
-
-
-@router.post(
     "/reportes/horas-disponibilidad",
     response_model=ReportResponse,
-    summary="Reporte 3: Horas de Disponibilidad",
-    description=f"Una fila por componente. Rango máximo: {MAX_DIAS_EVENTOS} días.",
+    summary="Disponibilidad por componente",
+    description=(
+        "Una fila por componente con indisponibilidad programada o forzada en el rango; "
+        f"los demás no aparecen. Rango máximo: {MAX_DIAS_EVENTOS} días."
+    ),
 )
 def rpt_horas_disponibilidad(req: HorasDisponibilidadRequest):
     _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_EVENTOS)
@@ -148,7 +113,7 @@ def rpt_horas_disponibilidad(req: HorasDisponibilidadRequest):
 @router.post(
     "/reportes/horas-no-disponibilidad",
     response_model=ReportResponse,
-    summary="Reporte 4: Horas de No Disponibilidad",
+    summary="Eventos",
     description=(
         f"Detalle de eventos por componente (una fila por evento, o fusionados "
         f"si `agregado=true`). Rango máximo: {MAX_DIAS_EVENTOS} días."
@@ -184,7 +149,7 @@ def rpt_comparacion(req: ProgramacionRequest):
 @router.post(
     "/reportes/horas-tipo-operacion",
     response_model=ReportResponse,
-    summary="Reporte 5: Horas por Tipo de Operación",
+    summary="Horas por tipo de operación",
     description=(
         f"Pivoteado por `periodo` (columna por día/mes/año). Rango máximo de "
         f"{MAX_DIAS_DIARIO} días cuando periodo='dia' (crece una columna por "

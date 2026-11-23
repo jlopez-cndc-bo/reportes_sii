@@ -170,7 +170,7 @@ export default function ScadaModule() {
                   onChange={(e) => setFechaFin(e.target.value)} /></label>
             )}
           </div>
-          <DatePresets single={!unRango}
+          <DatePresets single={!unRango} ini={fechaInicio} fin={fechaFin}
             onPick={(ini, fin) => { setFechaInicio(ini); if (unRango) setFechaFin(fin); }} />
         </QSec>
 

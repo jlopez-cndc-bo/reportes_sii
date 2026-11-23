@@ -2,11 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { formatNumber, isNumericFmt, calcTotales } from "../numFormat";
 import { Chevron } from "../icons";
 
-// Filas renderizadas inicialmente; con cientos de columnas (hasta 673 en
-// Potencias Indisponibles) el DOM crece rápido, así que se pagina el render.
+// Filas renderizadas inicialmente; con cientos de columnas el DOM crece
+// rápido, así que se pagina el render.
 const PAGE = 300;
-// Tope de celdas renderizadas: 300 filas × 673 columnas (Potencias
-// Indisponibles) ya se dibuja bien. shortcut: estimado, no medido en el
+// Tope de celdas renderizadas: 300 filas × ~670 columnas ya se dibuja bien. shortcut: estimado, no medido en el
 // equipo más lento; ajustar si «Mostrar más» se siente pesado.
 const MAX_CELDAS = 200_000;
 

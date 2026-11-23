@@ -23,9 +23,10 @@ export function rangosRapidos() {
   return [
     { label: "Hoy", ini: hoy, fin: hoy },
     { label: "Ayer", ini: ayer, fin: ayer },
-    { label: "7 días", ini: isoDaysAgo(7), fin: hoy },
-    { label: "30 días", ini: isoDaysAgo(30), fin: hoy },
-    { label: "Mes actual", ini: mesIni, fin: hoy },
-    { label: "Mes anterior", ini: mesAntIni, fin: mesAntFin },
+    // Últimos N días contando hoy (7 d = hoy y los 6 anteriores).
+    { label: "7 d", ini: isoDaysAgo(6), fin: hoy },
+    { label: "30 d", ini: isoDaysAgo(29), fin: hoy },
+    { label: "Mes", ini: mesIni, fin: hoy },
+    { label: "Mes ant.", ini: mesAntIni, fin: mesAntFin },
   ];
 }

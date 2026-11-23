@@ -10,7 +10,7 @@ import { useDialog } from "./useDialog";
 import { Close } from "./icons";
 
 const MODULOS = [
-  { id: "indisp", label: "Indisponibilidades" },
+  { id: "indisp", label: "Reporte de la Operación" },
   { id: "smec", label: "SMEC", nombre: "Sistema de Medición Comercial" },
   { id: "sisfalla", label: "Sisfalla", beta: true },
   { id: "scada", label: "SCADA HFD", beta: true },
@@ -41,7 +41,7 @@ function HelpModal({ onClose }) {
              transacción mensual recarga el mes completo: hasta ese cierre, los
              valores del mes en curso pueden cambiar.</p>
 
-          <h3>Indisponibilidades · Tipos de operación</h3>
+          <h3>Reporte de la Operación · Tipos de operación</h3>
           <ul className="codes">
             <li><b>152</b> Operación Normal</li>
             <li><b>153</b> Potencia Limitada</li>

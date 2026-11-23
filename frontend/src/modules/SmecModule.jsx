@@ -254,7 +254,7 @@ export default function SmecModule() {
                 <input type="date" value={fechaFin} min={fechaInicio} max={hoy} onKeyDown={onKey} onChange={(e) => setFechaFin(e.target.value)} /></label>
             )}
           </div>
-          <DatePresets single={!report.fin}
+          <DatePresets single={!report.fin} ini={fechaInicio} fin={fechaFin}
             onPick={(ini, fin) => { setFechaInicio(ini); if (report.fin) setFechaFin(fin); }} />
         </QSec>
 
