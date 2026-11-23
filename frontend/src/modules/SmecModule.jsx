@@ -11,35 +11,52 @@ import { usePersisted, usePersistedSet } from "../usePersisted";
 import { Rail, QueryPanel, QSec, ResultBar, fechaCorta } from "../shell";
 import { Refresh } from "../icons";
 
+// Entradas del rail. Las que tienen `variantes` muestran un selector (título
+// `opcion`) que elige el tipo interno que va a la API; ids, rutas y body no
+// cambian, y "smec.reporte" sigue guardando el tipo interno.
 const SMEC_REPORTS = [
-  { grupo: "Potencia", id: "potencia_15min", descripcion: "Potencia de cada intervalo de 15 minutos.",
-    label: "15 Minutos", interval: true, fin: false },
-  { grupo: "Potencia", id: "potencia_hora", descripcion: "Potencia de cada hora: promedio de sus cuatro intervalos de 15 minutos.",
-    label: "Hora", interval: true, fin: false },
-  { grupo: "Potencia", id: "potencia_max_diario", descripcion: "La potencia más alta de cada día del rango.",
-    label: "Máxima Diaria", interval: false, fin: true },
-  { grupo: "Potencia", id: "potencia_max_entre_fechas", descripcion: "La potencia más alta de todo el rango de fechas.",
-    label: "Máx. entre fechas", interval: false, fin: true },
-  { grupo: "Energía", id: "energia_dia", descripcion: "Energía de cada día del rango, con comparación opcional.",
-    label: "Día", interval: false, fin: true },
-  { grupo: "Energía", id: "energia_mes", descripcion: "Energía de cada mes del rango, con comparación opcional.",
-    label: "Mes", interval: false, fin: true },
-  { grupo: "Energía", id: "energia_anio", descripcion: "Energía de cada año del rango, con comparación opcional.",
-    label: "Año", interval: false, fin: true },
-  { grupo: "Índices", id: "factor_dia", descripcion: "Factor de carga del día: energía ÷ (potencia máxima × 24 h).",
-    label: "Factor Día", interval: false, fin: false },
-  { grupo: "Índices", id: "factor_periodo", descripcion: "Factor de carga del rango: energía ÷ (potencia máxima × horas del rango).",
-    label: "Factor Periodo", interval: false, fin: true },
-  { grupo: "Índices", id: "capacidad_sistema", descripcion: "Capacidad efectiva de cada sistema frente a su energía: factor = energía ÷ (capacidad × horas).",
-    label: "Capacidad por sistema", interval: false, fin: true,
-    soloIny: true, unidad: "capacidad en MW, energía en kWh, factor 0–1" },
-  { grupo: "Índices", id: "mix_tecnologia", descripcion: "Capacidad, energía y factor del SIN agrupados por tecnología.",
-    label: "Mix por tecnología", interval: false, fin: true,
-    soloIny: true, unidad: "capacidad en MW, energía en kWh, factor 0–1" },
+  { grupo: "Mediciones", id: "potencia", label: "Potencia", unidad: "kW", opcion: "Resolución",
+    descripcion: "Potencia de cada central a lo largo de un día, cada 15 minutos o por hora (promedio de sus cuatro intervalos).",
+    variantes: [
+      { id: "potencia_15min", label: "15 min", interval: true, fin: false,
+        title: "Potencia de cada intervalo de 15 minutos." },
+      { id: "potencia_hora", label: "Hora", interval: true, fin: false,
+        title: "Potencia de cada hora: promedio de sus cuatro intervalos de 15 minutos." },
+    ] },
+  { grupo: "Mediciones", id: "potencia_max", label: "Potencia máxima", unidad: "kW", opcion: "Máxima",
+    descripcion: "La potencia más alta de cada central: la de cada día del rango o una sola para todo el rango.",
+    variantes: [
+      { id: "potencia_max_diario", label: "Diaria", interval: false, fin: true,
+        title: "La potencia más alta de cada día del rango." },
+      { id: "potencia_max_entre_fechas", label: "Del rango", interval: false, fin: true,
+        title: "La potencia más alta de todo el rango de fechas." },
+    ] },
+  { grupo: "Mediciones", id: "energia", label: "Energía", unidad: "kWh", opcion: "Período",
+    descripcion: "Energía de cada central por día, mes o año del rango, con comparación opcional.",
+    variantes: [
+      { id: "energia_dia", label: "Día", interval: false, fin: true },
+      { id: "energia_mes", label: "Mes", interval: false, fin: true },
+      { id: "energia_anio", label: "Año", interval: false, fin: true },
+    ] },
+  { grupo: "Índices", id: "factor", label: "Factor de carga", unidad: "factor 0–1", opcion: "Período",
+    descripcion: "Cuánto se acerca la potencia media a la máxima: energía ÷ (potencia máxima × horas), en un día (24 h) o en todo el rango.",
+    variantes: [
+      { id: "factor_dia", label: "Un día", interval: false, fin: false,
+        title: "Factor de carga del día: energía ÷ (potencia máxima × 24 h)." },
+      { id: "factor_periodo", label: "Rango", interval: false, fin: true,
+        title: "Factor de carga del rango: energía ÷ (potencia máxima × horas del rango)." },
+    ] },
+  { grupo: "Índices", id: "capacidad", label: "Capacidad efectiva", opcion: "Agrupar por",
+    unidad: "capacidad en MW, energía en kWh, factor 0–1", soloIny: true,
+    descripcion: "Energía frente a la capacidad efectiva, por sistema o por tecnología (con su participación %): factor de planta = energía ÷ (capacidad × horas).",
+    variantes: [
+      { id: "capacidad_sistema", label: "Sistema", interval: false, fin: true },
+      { id: "mix_tecnologia", label: "Tecnología", interval: false, fin: true },
+    ] },
   // SIN completo: el total no depende del árbol. arbolOpcional = el árbol sólo
   // elige qué centrales se desglosan; sinArbol = no se usa.
   { grupo: "SIN", id: "pico_sin", descripcion: "Para cada día, el intervalo de 15 minutos con la mayor inyección del SIN y el aporte de cada central.",
-    label: "Pico diario", interval: false, fin: true,
+    label: "Pico diario", interval: false, fin: true, unidad: "kW",
     soloIny: true, arbolOpcional: true },
   { grupo: "SIN", id: "conciliacion", descripcion: "Inyección menos retiro de cada día: pérdidas y desbalance de medición.",
     label: "Conciliación", interval: false, fin: true,
@@ -48,7 +65,11 @@ const SMEC_REPORTS = [
     label: "Potencia limitada", interval: false, fin: true,
     sinArbol: true, unidad: "MW" },
 ];
-const GRUPOS = ["Potencia", "Energía", "Índices", "SIN"];
+// Un "tipo" por cada consulta posible: la entrada con su variante aplanada
+// (label = el de la entrada; variante = el texto del botón).
+const TIPOS = SMEC_REPORTS.flatMap((e) => (e.variantes || [{}])
+  .map((v) => ({ ...e, ...v, label: e.label, variante: v.label, entrada: e })));
+const GRUPOS = ["Mediciones", "Índices", "SIN"];
 // Más columnas que esto en el pico diario hace la tabla difícil de leer.
 const PICO_COLS_AVISO = 10;
 
@@ -72,7 +93,7 @@ export default function SmecModule() {
 
   const [tipo, setTipo] = usePersisted("smec.reporte", "potencia_15min");
   // Fallback por si un id persistido ya no existe en esta versión.
-  const report = useMemo(() => SMEC_REPORTS.find((r) => r.id === tipo) || SMEC_REPORTS[0], [tipo]);
+  const report = useMemo(() => TIPOS.find((r) => r.id === tipo) || TIPOS[0], [tipo]);
   const [direccionGuardada, setDireccion] = usePersisted("smec.direccion", "iny");
   // Capacidad/Mix sólo existen para Inyección: se fuerza sin pisar la preferencia guardada.
   const direccion = report.soloIny ? "iny" : direccionGuardada;
@@ -94,7 +115,7 @@ export default function SmecModule() {
   // una dirección a la vez, así que la selección actual no decide esto).
   const [conjunto, setConjunto] = useState(false);
   const puedeConjunto = report.id === "potencia_15min" || report.id === "potencia_hora";
-  const esEnergia = report.grupo === "Energía";
+  const esEnergia = report.id.startsWith("energia_");
   const [compararGuardado, setComparar] = usePersisted("smec.comparar", "ninguno");
   // Valor persistido que no aplica al reporte actual (p. ej. "semana" en Mes) → Ninguno.
   const comparar = esEnergia && opcionesComparar(report.id).some(([k]) => k === compararGuardado)
@@ -105,8 +126,7 @@ export default function SmecModule() {
   const [picoPct, setPicoPct] = usePersisted("smec.picoPct", false);
   const esSin = report.grupo === "SIN";
   const hoy = iso(0);
-  const unidad = report.unidad || (report.grupo === "Potencia" ? "kW"
-    : report.grupo === "Energía" ? "kWh" : "factor 0–1");
+  const unidad = report.unidad;
 
   const cargarArbol = useCallback(async () => {
     setTreeLoading(true); setTreeError(null);
@@ -220,7 +240,11 @@ export default function SmecModule() {
              labels: numCols.map((c) => c.label) };
   }, [result, report.id]);
 
-  const pick = (id) => { setTipo(id); setResult(null); setError(null); };
+  const pick = (id) => {
+    setTipo(id); setResult(null); setError(null);
+    // Al pasar a un tipo con rango, el final no puede quedar antes del inicio.
+    if (TIPOS.find((r) => r.id === id).fin && fechaFin < fechaInicio) setFechaFin(fechaInicio);
+  };
   const dirLabel = direccion === "iny" ? "Inyección" : "Retiro";
   const rango = report.fin
     ? `${fechaCorta(fechaInicio)} al ${fechaCorta(fechaFin)}`
@@ -228,13 +252,14 @@ export default function SmecModule() {
 
   return (
     <div className="layout">
-      <Rail grupos={GRUPOS} reports={SMEC_REPORTS} activeId={report.id} onPick={pick} />
+      <Rail grupos={GRUPOS} reports={SMEC_REPORTS} activeId={report.entrada.id}
+        onPick={(eid) => pick(eid === report.entrada.id ? report.id : TIPOS.find((t) => t.entrada.id === eid).id)} />
 
       <QueryPanel
         title={`${report.grupo} › ${report.label}`}
         desc={<p>{report.descripcion} {esSin ? `${descSin(picoPct)}.` : `Centrales de ${dirLabel}, valores en ${unidad}.`}</p>}
-        resumen={esSin ? `${rango}, ${estadoSin.toLowerCase()}`
-          : `${rango}, ${dirLabel}, ${idsSel.length} central(es)${comparar !== "ninguno" ? `, vs. ${compararLabel}` : ""}`}
+        resumen={`${report.variante ? `${report.variante}, ` : ""}` + (esSin ? `${rango}, ${estadoSin.toLowerCase()}`
+          : `${rango}, ${dirLabel}, ${idsSel.length} central(es)${comparar !== "ninguno" ? `, vs. ${compararLabel}` : ""}`)}
         estado={esSin ? estadoSin : `${idsSel.length} central(es) seleccionada(s)`} listo={puedeGenerar}
         onGenerar={generar} running={running} puedeGenerar={puedeGenerar}
         footer={<>
@@ -259,8 +284,20 @@ export default function SmecModule() {
         </QSec>
 
         {/* soloIny fuerza Inyección y oculta Dirección; la sección se oculta si no queda nada. */}
-        {((!report.soloIny && !report.sinArbol) || report.id === "pico_sin") && <QSec title="Opciones">
+        {(report.entrada.variantes || (!report.soloIny && !report.sinArbol) || report.id === "pico_sin") && <QSec title="Opciones">
           <div className="options">
+            {report.entrada.variantes && (
+              <div className="opt-group">
+                <span className="opt-title">{report.entrada.opcion}</span>
+                <div className="opt-radios">
+                  {report.entrada.variantes.map((v) => (
+                    <button key={v.id} type="button" aria-pressed={report.id === v.id} title={v.title}
+                      className={`seg ${report.id === v.id ? "seg--on" : ""}`}
+                      onClick={() => report.id !== v.id && pick(v.id)}>{v.label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
             {!report.soloIny && !report.sinArbol && (
             <div className="opt-group">
               <span className="opt-title">Dirección</span>
@@ -286,7 +323,7 @@ export default function SmecModule() {
                 <span className="opt-title">Nivel</span>
                 <div className="opt-radios">
                   {[["agente", "Agente"], ["central", "Central"], ["medidor", "Medidor"],
-                    ["drill", "Árbol"]].map(([n, lbl]) => (
+                    ["drill", "Jerárquico"]].map(([n, lbl]) => (
                     <button key={n} type="button" aria-pressed={nivel === n}
                       title={n === "drill" ? "Grilla jerárquica Agente → Central → Medidor" : undefined}
                       className={`seg ${nivel === n ? "seg--on" : ""}`} onClick={() => setNivel(n)}>
@@ -339,7 +376,7 @@ export default function SmecModule() {
           {treeLoading ? <div className="tree-empty">Cargando…</div>
             : treeError ? <div className="tree-error">{treeError}</div>
             : <div className="tree-wrap">
-                <Tree nodes={visibleTree} checked={checked} onToggle={onToggle} filter={filtro} />
+                <Tree nodes={visibleTree} checked={checked} onToggle={onToggle} filter={filtro} collapsed />
               </div>}
         </QSec>
         )}

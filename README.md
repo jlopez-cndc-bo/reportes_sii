@@ -84,12 +84,17 @@ cd web/backend
 Segundo módulo migrado (Etapa 1 del plan). Reusa los paquetes Oracle
 `SMEC_POTENCIA_API` y `PKG_OBJETOS` + la tabla `DW_RELACIONES`.
 
-| Reporte | Notas |
-|---|---|
-| Potencia 15 min / Hora | Jerárquico Agente/Central/Medidor (selector de nivel), toggle Inyección/Retiro, columnas por intervalo |
-| Potencia Máxima Diaria / entre fechas | Tabla plana por dirección |
-| Energía Día / Mes / Año | Día y Mes desde procs; Año y Mes con SQL propio (ver notas) |
-| Factor de carga Día / Periodo | **Pendiente**: falta confirmar el procedimiento Oracle |
+Módulo «Sistema de Medición Comercial» en la UI. Cada reporte del rail elige su
+variante con una opción; el `tipo` que va a la API es el de la variante.
+
+| Grupo | Reporte | Opción → `tipo` | Notas |
+|---|---|---|---|
+| Mediciones | Potencia | Resolución: 15 min / Hora → `potencia_15min` / `potencia_hora` | Nivel Agente/Central/Medidor/Jerárquico, Inyección/Retiro, columnas por intervalo |
+| Mediciones | Potencia máxima | Máxima: Diaria / Del rango → `potencia_max_diario` / `potencia_max_entre_fechas` | Tabla plana por dirección |
+| Mediciones | Energía | Período: Día / Mes / Año → `energia_dia` / `energia_mes` / `energia_anio` | Día y Mes desde procs; Año y Mes con SQL propio (ver notas) |
+| Índices | Factor de carga | Período: Un día / Rango → `factor_dia` / `factor_periodo` | `TRUNC(E/(P·h),2)` |
+| Índices | Capacidad efectiva | Agrupar por: Sistema / Tecnología → `capacidad_sistema` / `mix_tecnologia` | Sólo inyección |
+| SIN | Pico diario · Conciliación · Potencia limitada | — | `pico_sin` / `conciliacion` / `potencia_limitada` |
 
 Endpoints: `GET /api/smec/estructura`, `POST /api/smec/reporte`, `POST /api/smec/exportar`.
 

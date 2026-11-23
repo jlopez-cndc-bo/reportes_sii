@@ -11,7 +11,7 @@ import { Close } from "./icons";
 
 const MODULOS = [
   { id: "indisp", label: "Reporte de la Operación" },
-  { id: "smec", label: "SMEC", nombre: "Sistema de Medición Comercial" },
+  { id: "smec", label: "Sistema de Medición Comercial", nombre: "SMEC" },
   { id: "sisfalla", label: "Sisfalla", beta: true },
   { id: "scada", label: "SCADA HFD", beta: true },
 ];
@@ -32,7 +32,7 @@ function HelpModal({ onClose }) {
           <p><b>Agente → Central → Unidad/Medidor.</b> Marque en el árbol el nivel que desea;
              al marcar un padre se marcan sus hijos.</p>
 
-          <h3>SMEC (Sistema de Medición Comercial) · Inyección vs. Retiro</h3>
+          <h3>Sistema de Medición Comercial · Inyección vs. Retiro</h3>
           <p><b>Inyección</b>: energía/potencia que la central entrega al sistema.
              <b> Retiro</b>: la que consume. Elija la dirección en el panel izquierdo;
              el árbol muestra sólo las centrales de esa dirección. Potencia en <b>kW</b>,
@@ -51,12 +51,12 @@ function HelpModal({ onClose }) {
             <li><b>192</b> Reprogramación</li>
           </ul>
 
-          <h3>SMEC · Indicadores de potencia</h3>
+          <h3>Sistema de Medición Comercial · Indicadores de potencia</h3>
           <p><b>Servicio local</b> es la energía de los intervalos con potencia
              negativa (la central consume); <b>energía bruta</b>, la de los
              positivos; <b>neta</b>, la suma de ambas.</p>
 
-          <h3>SMEC · SIN</h3>
+          <h3>Sistema de Medición Comercial · SIN</h3>
           <p><b>Pico diario</b>: para cada día, el intervalo de 15 min con la
              mayor inyección total del SIN y el aporte de las centrales marcadas
              (las demás van en «Resto»). <b>Conciliación</b>: inyección menos
@@ -65,9 +65,9 @@ function HelpModal({ onClose }) {
              frente a la potencia efectiva de la unidad y a lo que midió su
              medidor propio.</p>
 
-          <h3>SMEC · Nivel «Árbol»</h3>
-          <p>En Potencia 15 min/Hora, el nivel <b>Árbol</b> muestra una grilla
-             jerárquica expandible Agente → Central → Medidor (use la flecha de cada fila).</p>
+          <h3>Sistema de Medición Comercial · Nivel «Jerárquico»</h3>
+          <p>En Potencia, el nivel <b>Jerárquico</b> muestra una grilla
+             expandible Agente → Central → Medidor (use la flecha de cada fila).</p>
 
           <h3>Sisfalla</h3>
           <p>Reportes de fallas del sistema eléctrico. No usa árbol de

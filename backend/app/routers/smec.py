@@ -17,15 +17,15 @@ _XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 _TITULOS = {
     "potencia_15min": "Potencia - 15 minutos",
     "potencia_hora": "Potencia - Horaria",
-    "potencia_max_diario": "Potencia - Máxima diaria",
-    "potencia_max_entre_fechas": "Potencia - Máxima entre fechas",
+    "potencia_max_diario": "Potencia máxima - Diaria",
+    "potencia_max_entre_fechas": "Potencia máxima - Del rango",
     "energia_dia": "Energía - Día",
     "energia_mes": "Energía - Mes",
     "energia_anio": "Energía - Año",
     "factor_dia": "Factor de carga - Día",
-    "factor_periodo": "Factor de carga - Periodo",
-    "capacidad_sistema": "Capacidad por sistema",
-    "mix_tecnologia": "Mix por tecnología",
+    "factor_periodo": "Factor de carga - Rango",
+    "capacidad_sistema": "Capacidad efectiva - Por sistema",
+    "mix_tecnologia": "Capacidad efectiva - Por tecnología",
     "pico_sin": "Pico del SIN por día",
     "conciliacion": "Conciliación inyección-retiro",
     "potencia_limitada": "Potencia limitada",
@@ -158,9 +158,10 @@ def exportar(req: SmecReporteRequest):
             for r in res["rows"]
         ]}
     ini = req.fecha_inicio.date().isoformat()
-    dir_lbl = "Inyeccion" if req.direccion == "iny" else "Retiro"
+    dir_lbl = "Inyeccion" if req.direccion == "iny" else "Retiro"  # ASCII: va en el nombre de archivo
+    dir_titulo = "Inyección" if req.direccion == "iny" else "Retiro"
     label = _TITULOS.get(req.tipo, req.tipo)
-    titulo = f"SMEC · {label} ({dir_lbl}) — desde {ini}"
+    titulo = f"Sistema de Medición Comercial · {label} ({dir_titulo}) — desde {ini}"
     buf = build_workbook(res, titulo, totales=True)
     fname = f"SMEC_{label.replace(' ', '_')}_{dir_lbl}_{ini}.xlsx"
     headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"}
@@ -199,7 +200,7 @@ def exportar_conjunto(req: SmecReporteRequest):
                 {**r, "nombre": "    " * r.get("_nivel", 0) + str(r.get("nombre", ""))}
                 for r in res["rows"]
             ]}
-        titulo = f"SMEC · {label} ({nombre_hoja}) — desde {ini}"
+        titulo = f"Sistema de Medición Comercial · {label} ({nombre_hoja}) — desde {ini}"
         hojas.append((nombre_hoja, res, titulo))
 
     buf = build_workbook_multi(hojas, totales=True)
