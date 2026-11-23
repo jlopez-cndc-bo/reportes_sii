@@ -9,6 +9,7 @@
 const fallaFiltroBody = (f) => ({
   cod_falla: f.codFalla ? f.codFalla.trim() : null,
   agente: f.agente || null,
+  agente_exacto: !!(f.agente && f.agenteExacto),
   desde: f.desde || null,
   hasta: f.hasta || null,
 });
@@ -157,7 +158,7 @@ export const SISFALLA_REPORTS = [
     metodo: "post",
     descripcion: "Componentes con parámetros EDAC configurados por agente (solo lectura).",
     campos: { agente: true, desde: true, hasta: true },
-    buildBody: (f) => ({ agente: f.agente || null, desde: f.desde || null, hasta: f.hasta || null }),
+    buildBody: (f) => ({ agente: f.agente || null, agente_exacto: !!(f.agente && f.agenteExacto), desde: f.desde || null, hasta: f.hasta || null }),
   },
   {
     id: "edac-analisis",

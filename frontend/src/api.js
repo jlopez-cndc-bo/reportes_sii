@@ -62,7 +62,7 @@ export const api = {
   smecExportarConjunto: (body) => download("/api/smec/exportar-conjunto", body),
   // Sisfalla
   sisfallaReporte: (endpoint, body) => post(`/api/sisfalla/reportes/${endpoint}`, body),
-  sisfallaReporteGet: (endpoint) => fetch(`/api/sisfalla/reportes/${endpoint}`).then((r) => r.json()),
+  sisfallaReporteGet: (endpoint) => send("GET", `/api/sisfalla/reportes/${endpoint}`),
   sisfallaExportar: (endpoint, body) => download(`/api/sisfalla/exportar/${endpoint}`, body),
   sisfallaBuscarFallas: (q, limite = 30) =>
     fetch(`/api/sisfalla/fallas/buscar?${new URLSearchParams({ q: q || "", limite })}`).then((r) => r.json()),

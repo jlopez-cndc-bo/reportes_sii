@@ -73,7 +73,7 @@ cd web/backend
 
 | Grupo | Reporte | Endpoint |
 |---|---|---|
-| Detalle | Disponibilidad por componente | `POST /api/reportes/horas-disponibilidad` |
+| Detalle | Disponibilidad (por componente o central) | `POST /api/reportes/horas-disponibilidad` |
 | Detalle | Eventos | `POST /api/reportes/horas-no-disponibilidad` |
 | Detalle | Horas por tipo de operación | `POST /api/reportes/horas-tipo-operacion` |
 | — | Árbol de componentes | `POST /api/arbol` |

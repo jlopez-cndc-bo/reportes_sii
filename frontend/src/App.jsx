@@ -72,7 +72,7 @@ function HelpModal({ onClose }) {
           <h3>Sistema de Fallas</h3>
           <p>Reportes de fallas del sistema eléctrico. No usa árbol de
              componentes: filtre por <b>falla</b> (código puntual), <b>agente</b>
-             (texto libre) y/o rango de fechas — todos opcionales. Los
+             (de la lista) y/o rango de fechas — todos opcionales. Los
              reportes de <b>Análisis de fallas</b> y <b>EDAC › Operación</b> sólo muestran
              fallas cuyo informe FINAL o RECTIFICATORIO del CNDC ya fue emitido.</p>
 

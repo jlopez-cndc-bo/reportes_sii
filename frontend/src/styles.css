@@ -40,7 +40,7 @@
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 body { background: var(--bg); color: var(--ink); font-size: 14px; line-height: 1.35; }
-button, input { font: inherit; color: inherit; }
+button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 
@@ -170,11 +170,11 @@ button:disabled { cursor: not-allowed; }
 .filtros { display: flex; flex-direction: column; gap: 10px; }
 .dfield { display: block; font-size: 13px; color: var(--muted); }
 .dfield > span { display: block; margin-bottom: 4px; }
-.dfield input, .tree-search, .results-filter, .falla-search-input, .opt-number input {
+.dfield input, .dfield select, .tree-search, .results-filter, .falla-search-input, .opt-number input {
   width: 100%; height: 34px; padding: 0 9px; border: 1px solid var(--line-strong);
   border-radius: var(--radius); background: var(--panel); color: var(--ink);
 }
-.dfield input:disabled { background: var(--line-soft); color: var(--muted); }
+.dfield input:disabled, .dfield select:disabled { background: var(--line-soft); color: var(--muted); }
 .field-hint { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
 .field-with-action { display: flex; gap: 6px; align-items: center; }
 .field-with-action input { flex: 1; min-width: 0; }
@@ -352,7 +352,7 @@ button.tree-toggle:hover, button.drill-toggle:hover { background: var(--tint-str
 .falla-search-desc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ── Foco accesible ── */
-button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 /* ── Pantallas angostas: las columnas se apilan ── */
 @media (max-width: 920px) {

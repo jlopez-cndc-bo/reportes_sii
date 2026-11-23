@@ -4,67 +4,12 @@ Sólo se compara con datos concretos: la potencia efectiva por unidad del
 archivo semestral del CNDC (no está en Oracle) y el medidor propio de la
 unidad en SMEC. Si falta alguno, la celda queda vacía.
 """
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from ..db import query
+from ..potencia_efectiva import efectiva
 from ..sqlutil import in_clause
-
-# Potencia efectiva por unidad (MW; térmicas a temperatura media), por vigencia.
-# Fuente: «Potencia efectiva noviembre 2026 - abril 2027» (01_Nov26_Abr27.xlsx).
-# Ciclos combinados con su valor CC (WARxy→CCWARxy, ERIxy→CCERIxy, SURxy→CCSURxy,
-# GCH09/10→GCHxxCOM; las x0 son el bloque). ERI01-04 = Entre Ríos 11/12/21/22 y
-# WAR05 = Warnes 51 (confirmado por Operación 2026-11-19). GCH12 (vapor) depende
-# del estado de operación: sin dato.
-# shortcut: tabla a mano por semestre; actualizar cada noviembre y mayo con el
-# archivo nuevo (agregar una vigencia, no pisar la anterior).
-EFECTIVA: dict[date, dict[str, float]] = {
-    date(2026, 11, 1): {
-        # Guaracachi
-        "GCH01": 18.62, "GCH02": 17.62, "GCH04": 19.95, "GCH06": 20.71, "GCH11": 62.22,
-        "GCH09": 102.03, "GCH10": 100.97,
-        "GCH09COM": 102.03, "GCH10COM": 100.97, "GCH0910COM": 206.83,
-        # Santa Cruz, Valle Hermoso, Aranjuez, Carrasco, El Alto, Bulo Bulo
-        "SCZ01": 20.76, "SCZ02": 21.19,
-        "VHE02": 18.81, "VHE03": 18.32, "VHE05": 10.58, "VHE06": 10.58, "VHE07": 10.58, "VHE08": 10.58,
-        "ARJ01": 2.7, "ARJ02": 2.24, "ARJ03": 2.62, "ARJ08": 18.39, "ARJ09": 1.49, "ARJ11": 1.49,
-        "ARJ12": 1.6, "ARJ13": 1.55, "ARJ14": 1.51, "ARJ15": 1.6,
-        "CAR01": 53.65, "CAR02": 55.39, "CAR03": 24.32,
-        "ALT01": 18.33, "ALT02": 31.62,
-        "BUL01": 43.97, "BUL03": 48.82,
-        # Entre Ríos
-        "ERI01": 28.72, "ERI02": 28.04, "ERI03": 29.13, "ERI04": 28.44,
-        "ERI30": 137.42, "ERI31": 68.22, "ERI32": 67.36, "ERI40": 137.56, "ERI41": 67.73,
-        "ERI42": 67.56, "ERI50": 137.46, "ERI51": 67.68, "ERI52": 67.46,
-        # Termoeléctrica del Sur
-        "SUR10": 122.84, "SUR11": 58.31, "SUR12": 58.3, "SUR20": 122.44, "SUR21": 58.44,
-        "SUR22": 58.37, "SUR30": 129.05, "SUR31": 63.39, "SUR32": 63.3, "SUR40": 131.5,
-        "SUR41": 63.46, "SUR42": 64.36,
-        # Warnes
-        "WAR05": 44.33,
-        "WAR10": 128.35, "WAR11": 64.0, "WAR12": 63.73, "WAR20": 127.5, "WAR21": 64.04,
-        "WAR22": 62.91, "WAR30": 135.36, "WAR31": 66.74, "WAR32": 67.09, "WAR40": 135.03,
-        "WAR41": 65.8, "WAR42": 66.52,
-        # Moxos
-        "MOA02": 1.28, "MOA05": 1.1, "MOA06": 1.12, "MOA07": 1.1, "MOA08": 1.1,
-        # Bagazo (una unidad por central)
-        "GBE01": 21.0, "IAG01": 5.0, "UNA01": 35.0, "AGU01": 4.0, "AGU02": 55.0,
-        "AGU03": 52.09, "SBU01": 5.0,
-        # Hidroeléctricas con eventos de limitación
-        "CAH01": 13.653, "CAH02": 14.364, "HUA01": 15.1, "HUA02": 15.05, "CHJ": 38.4,
-        "SIS05": 21.649, "SJA02": 3.8, "SJE02": 34.5,
-    },
-}
-# Hasta cuándo rige la última vigencia cargada (fin del semestre del archivo).
-_FIN_ULTIMA = date(2027, 4, 30)
-
-
-def efectiva(codigo: str, dia: date) -> float | None:
-    """Potencia efectiva vigente para la unidad ese día, o None si no hay dato."""
-    vig = [v for v in EFECTIVA if v <= dia]
-    if not vig or dia > _FIN_ULTIMA:
-        return None
-    return EFECTIVA[max(vig)].get(codigo)
 
 
 def _max_medido(muestras: list[tuple[datetime, float]], desde: datetime,

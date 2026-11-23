@@ -91,13 +91,18 @@ class ReportResponse(BaseModel):
 
 
 class HorasDisponibilidadRequest(BaseModel):
-    """Disponibilidad por componente, en el rango dado."""
+    """Disponibilidad por componente o por central, en el rango dado."""
 
     fecha_inicio: datetime = Field(..., examples=["2026-06-01T00:00:00"])
     fecha_fin: datetime = Field(..., examples=["2026-06-30T23:59:59"])
     unidades: list[int] = Field(default_factory=list, description="IDs de componente; vacío = todos.")
     ip: bool = Field(True, description="Incluir indisponibilidad Programada (155).")
     inf: bool = Field(True, description="Incluir indisponibilidad Forzada (156).")
+    nivel: str = Field(
+        "componente",
+        description="'componente' (una fila por componente con eventos) o 'central' "
+                    "(% por central ponderado por la potencia efectiva oficial).",
+    )
 
 
 class HorasNoDisponibilidadRequest(BaseModel):
@@ -195,6 +200,9 @@ class SeguimientoInformesRequest(BaseModel):
 
     cod_falla: CodFalla = Field(None, description="Falla puntual: 'nro/gestión' (ej. 247/2026) o código interno PK_COD_FALLA.")
     agente: str | None = Field(None, description="Texto libre, busca por sigla o nombre del agente.")
+    agente_exacto: bool = Field(
+        False, description="true = `agente` es una sigla (combo de la UI) y se filtra por igualdad exacta; false = búsqueda por texto.",
+    )
     desde: datetime | None = Field(None, description="Filtra por PLAZO >= desde.")
     hasta: datetime | None = Field(None, description="Filtra por PLAZO <= hasta (día completo, inclusive).")
     limite: int = Field(500, ge=1, le=2000, description="Tope de filas (máx. 2000).")
@@ -205,6 +213,9 @@ class DetalleInformesRequest(BaseModel):
 
     cod_falla: CodFalla = Field(None, description="Falla puntual: 'nro/gestión' (ej. 247/2026) o código interno PK_COD_FALLA.")
     agente: str | None = Field(None, description="Texto libre, busca por sigla del agente.")
+    agente_exacto: bool = Field(
+        False, description="true = `agente` es una sigla (combo de la UI) y se filtra por igualdad exacta; false = búsqueda por texto.",
+    )
     desde: datetime | None = Field(None, description="Filtra por fecha de transacción >= desde.")
     hasta: datetime | None = Field(None, description="Filtra por fecha de transacción <= hasta (día completo, inclusive).")
     gestion: int | None = Field(
@@ -237,6 +248,9 @@ class FallaFiltroRequest(BaseModel):
 
     cod_falla: CodFalla = Field(None, description="Falla puntual: 'nro/gestión' (ej. 247/2026) o código interno PK_COD_FALLA.")
     agente: str | None = Field(None, description="Texto libre, busca por sigla o nombre del propietario del componente.")
+    agente_exacto: bool = Field(
+        False, description="true = `agente` es una sigla (combo de la UI) y se filtra por igualdad exacta; false = búsqueda por texto.",
+    )
     desde: datetime | None = Field(None, description="Filtra por fecha de apertura >= desde.")
     hasta: datetime | None = Field(None, description="Filtra por fecha de apertura <= hasta (día completo, inclusive).")
 
@@ -245,6 +259,9 @@ class EdacRequest(BaseModel):
     """Componentes con parámetros EDAC configurados por agente."""
 
     agente: str | None = Field(None, description="Texto libre, busca por sigla o nombre del propietario.")
+    agente_exacto: bool = Field(
+        False, description="true = `agente` es una sigla (combo de la UI) y se filtra por igualdad exacta; false = búsqueda por texto.",
+    )
     desde: datetime | None = Field(None, description="Filtra por fecha de inicio de vigencia >= desde.")
     hasta: datetime | None = Field(None, description="Filtra por fecha de inicio de vigencia <= hasta (día completo, inclusive).")
 
@@ -257,6 +274,7 @@ class SisfallaExportRequest(BaseModel):
 
     cod_falla: CodFalla = None
     agente: str | None = None
+    agente_exacto: bool = False
     desde: datetime | None = None
     hasta: datetime | None = None
     gestion: int | None = None

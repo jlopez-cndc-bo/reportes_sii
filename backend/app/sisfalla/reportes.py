@@ -9,6 +9,7 @@ filas por agente; los 3 casos que sí acotan columnas/acceso según sesión
 de `detalle-informes`— se resolvieron excluyendo los dos primeros del tab y
 omitiendo esa columna en el tercero, por no haber sesión de usuario).
 """
+import re
 from datetime import datetime, time, timedelta
 from typing import Any
 
@@ -28,15 +29,27 @@ from .fuentes import (
 MAX_LIMITE = 2000
 
 
+def _cond_sigla_exacta(*alias: str) -> str:
+    """Condición de agente exacto por sigla (combo de la UI): con LIKE, «ENDE»
+    también traería ENDET, ENDEG… Varios alias = cualquiera de esas personas."""
+    return "(" + " OR ".join(f"UPPER(TRIM({a}.SIGLA)) = UPPER(:agente)" for a in alias) + ")"
+
+
 def _filtro_cod_falla_agente(
     sql: str, params: dict, *, falla_col: str, agente_expr: str,
-    cod_falla: int | None, agente: str | None,
+    cod_falla: int | None, agente: str | None, exacto: bool = False,
 ) -> str:
-    """Mismo patrón que `_aplicar_filtros_reporte` del SisFalla original."""
+    """Mismo patrón que `_aplicar_filtros_reporte` del SisFalla original.
+    exacto: `agente` es una sigla; compara por igualdad contra las siglas de
+    `agente_expr` (los alias `x.SIGLA` que contiene) en vez de LIKE."""
     if cod_falla is not None:
         sql += f" AND {falla_col} = :cod_falla"
         params["cod_falla"] = cod_falla
-    if agente:
+    if agente and exacto:
+        alias = re.findall(r"(\w+)\.SIGLA", agente_expr)
+        sql += f" AND {_cond_sigla_exacta(*alias)}"
+        params["agente"] = agente.strip()
+    elif agente:
         sql += f" AND UPPER({agente_expr}) LIKE UPPER(:agente)"
         params["agente"] = f"%{agente}%"
     return sql
@@ -67,6 +80,7 @@ def seguimiento_informes(
     desde: datetime | None,
     hasta: datetime | None,
     limite: int = 500,
+    agente_exacto: bool = False,
 ) -> dict[str, Any]:
     sql = f"""
         SELECT a.PK_COD_FALLA,
@@ -84,7 +98,9 @@ def seguimiento_informes(
     params: dict[str, Any] = {}
     if cod_falla is not None:
         sql = _agregar_filtro(sql, params, "a.PK_COD_FALLA = :cod_falla", "cod_falla", cod_falla)
-    if agente:
+    if agente and agente_exacto:
+        sql = _agregar_filtro(sql, params, _cond_sigla_exacta("p"), "agente", agente.strip())
+    elif agente:
         sql = _agregar_filtro(
             sql, params,
             "(UPPER(p.SIGLA) LIKE UPPER(:agente) OR UPPER(p.NOM_PERSONA) LIKE UPPER(:agente))",
@@ -130,6 +146,7 @@ def detalle_informes(
     hasta: datetime | None,
     gestion: int | None,
     limite: int = 500,
+    agente_exacto: bool = False,
 ) -> dict[str, Any]:
     sql = f"""
         SELECT o.ID_OPERACION AS COD_OPERACION,
@@ -157,7 +174,9 @@ def detalle_informes(
         sql += " AND o.PK_COD_FALLA BETWEEN :gestion_desde AND :gestion_hasta"
         params["gestion_desde"] = base
         params["gestion_hasta"] = base + 9999
-    if agente:
+    if agente and agente_exacto:
+        sql = _agregar_filtro(sql, params, _cond_sigla_exacta("p"), "agente", agente.strip())
+    elif agente:
         sql = _agregar_filtro(sql, params, "UPPER(p.SIGLA) LIKE UPPER(:agente)", "agente", f"%{agente}%")
     if desde:
         sql = _agregar_filtro(sql, params, "l.FECHA_TRANSACCION >= :desde", "desde", desde)
@@ -369,6 +388,7 @@ def resumen_agentes(desde: datetime | None, hasta: datetime | None) -> dict[str,
 def componentes_comprometidos(
     cod_falla: int | None, agente: str | None,
     desde: datetime | None, hasta: datetime | None,
+    agente_exacto: bool = False,
 ) -> dict[str, Any]:
     sql = f"""
         SELECT
@@ -425,7 +445,7 @@ def componentes_comprometidos(
     sql = _filtro_cod_falla_agente(
         sql, params, falla_col="rc.PK_COD_FALLA",
         agente_expr="NVL(p_prop.SIGLA, '') || ' ' || NVL(p_prop.NOM_PERSONA, '')",
-        cod_falla=cod_falla, agente=agente,
+        cod_falla=cod_falla, agente=agente, exacto=agente_exacto,
     )
     if desde:
         sql = _agregar_filtro(sql, params, "rc.FEC_APERTURA >= :desde", "desde", desde)
@@ -471,6 +491,7 @@ def componentes_comprometidos(
 def elementos_comprometidos(
     cod_falla: int | None, agente: str | None,
     desde: datetime | None, hasta: datetime | None,
+    agente_exacto: bool = False,
 ) -> dict[str, Any]:
     sql = f"""
         SELECT
@@ -503,7 +524,7 @@ def elementos_comprometidos(
     sql = _filtro_cod_falla_agente(
         sql, params, falla_col="rc.PK_COD_FALLA",
         agente_expr="NVL(p.SIGLA, '') || ' ' || NVL(p.NOM_PERSONA, '')",
-        cod_falla=cod_falla, agente=agente,
+        cod_falla=cod_falla, agente=agente, exacto=agente_exacto,
     )
     if desde:
         sql = _agregar_filtro(sql, params, "rc.FEC_APERTURA >= :desde", "desde", desde)
@@ -544,6 +565,7 @@ def elementos_comprometidos(
 def falla_alimentadores(
     cod_falla: int | None, agente: str | None,
     desde: datetime | None, hasta: datetime | None,
+    agente_exacto: bool = False,
 ) -> dict[str, Any]:
     sql = f"""
         SELECT
@@ -587,7 +609,7 @@ def falla_alimentadores(
     sql = _filtro_cod_falla_agente(
         sql, params, falla_col="a.PK_COD_FALLA",
         agente_expr="NVL(p.SIGLA, '') || ' ' || NVL(p.NOM_PERSONA, '')",
-        cod_falla=cod_falla, agente=agente,
+        cod_falla=cod_falla, agente=agente, exacto=agente_exacto,
     )
     if desde:
         sql = _agregar_filtro(sql, params, "a.FECHA_APERTURA >= :desde", "desde", desde)
@@ -631,6 +653,7 @@ def falla_alimentadores(
 def det_interruptores(
     cod_falla: int | None, agente: str | None,
     desde: datetime | None, hasta: datetime | None,
+    agente_exacto: bool = False,
 ) -> dict[str, Any]:
     # Códigos 79/80/81 (Manual/Automático/Remota) confirmados estables en este
     # entorno (verificado contra P_DEF_DOMINIOS, 2026-10-08).
@@ -664,7 +687,7 @@ def det_interruptores(
     sql = _filtro_cod_falla_agente(
         sql, params, falla_col="i.PK_COD_FALLA",
         agente_expr="NVL(p.SIGLA, '') || ' ' || NVL(p.NOM_PERSONA, '')",
-        cod_falla=cod_falla, agente=agente,
+        cod_falla=cod_falla, agente=agente, exacto=agente_exacto,
     )
     if desde:
         sql = _agregar_filtro(sql, params, "i.FECHA_APERTURA >= :desde", "desde", desde)
@@ -705,6 +728,7 @@ def det_interruptores(
 def reles_operados(
     cod_falla: int | None, agente: str | None,
     desde: datetime | None, hasta: datetime | None,
+    agente_exacto: bool = False,
 ) -> dict[str, Any]:
     # Base = F_GF_OP_INTERRUPTOR (no F_GF_RELES_OPER): una operación sin relé
     # asociado igual aparece, con las columnas de relé en blanco — usar la
@@ -740,7 +764,7 @@ def reles_operados(
     sql = _filtro_cod_falla_agente(
         sql, params, falla_col="i.PK_COD_FALLA",
         agente_expr="NVL(p.SIGLA, '') || ' ' || NVL(p.NOM_PERSONA, '')",
-        cod_falla=cod_falla, agente=agente,
+        cod_falla=cod_falla, agente=agente, exacto=agente_exacto,
     )
     if desde:
         sql = _agregar_filtro(sql, params, "i.FECHA_APERTURA >= :desde", "desde", desde)
@@ -780,7 +804,10 @@ def reles_operados(
 
 # ──────────────────────── 12. Consulta EDAC (solo lectura) ────────────────────────
 
-def edac(agente: str | None, desde: datetime | None, hasta: datetime | None) -> dict[str, Any]:
+def edac(
+    agente: str | None, desde: datetime | None, hasta: datetime | None,
+    agente_exacto: bool = False,
+) -> dict[str, Any]:
     sql = f"""
         SELECT
             c.PK_COD_COMPONENTE,
@@ -799,7 +826,9 @@ def edac(agente: str | None, desde: datetime | None, hasta: datetime | None) -> 
         WHERE 1 = 1
     """
     params: dict[str, Any] = {}
-    if agente:
+    if agente and agente_exacto:
+        sql = _agregar_filtro(sql, params, _cond_sigla_exacta("p"), "agente", agente.strip())
+    elif agente:
         sql = _agregar_filtro(
             sql, params,
             "UPPER(NVL(p.SIGLA, '') || ' ' || NVL(p.NOM_PERSONA, '')) LIKE UPPER(:agente)",
@@ -841,6 +870,7 @@ def edac(agente: str | None, desde: datetime | None, hasta: datetime | None) -> 
 def detalle_desconexiones(
     cod_falla: int | None, agente: str | None,
     desde: datetime | None, hasta: datetime | None,
+    agente_exacto: bool = False,
 ) -> dict[str, Any]:
     c = codigos()
     pks = ",".join(str(pk) for pk in entidades().pks_transmisoras)
@@ -933,7 +963,7 @@ def detalle_desconexiones(
             "NVL(respo.SIGLA, '') || ' ' || NVL(respo.NOM_PERSONA, '') || ' ' || "
             "NVL(propie.SIGLA, '') || ' ' || NVL(propie.NOM_PERSONA, '')"
         ),
-        cod_falla=cod_falla, agente=agente,
+        cod_falla=cod_falla, agente=agente, exacto=agente_exacto,
     )
     if desde:
         sql = _agregar_filtro(sql, params, "rc.FEC_APERTURA >= :desde", "desde", desde)
@@ -1045,6 +1075,7 @@ def edac_analisis() -> dict[str, Any]:
 def operacion_edac(
     cod_falla: int | None, agente: str | None,
     desde: datetime | None, hasta: datetime | None,
+    agente_exacto: bool = False,
 ) -> dict[str, Any]:
     sql = f"""
         SELECT
@@ -1087,7 +1118,7 @@ def operacion_edac(
     sql = _filtro_cod_falla_agente(
         sql, params, falla_col="a.PK_COD_FALLA",
         agente_expr="NVL(p.SIGLA, '') || ' ' || NVL(p.NOM_PERSONA, '')",
-        cod_falla=cod_falla, agente=agente,
+        cod_falla=cod_falla, agente=agente, exacto=agente_exacto,
     )
     if desde:
         sql = _agregar_filtro(sql, params, "a.FECHA_APERTURA >= :desde", "desde", desde)

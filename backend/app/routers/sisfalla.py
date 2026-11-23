@@ -47,6 +47,7 @@ def rpt_seguimiento_informes(req: SeguimientoInformesRequest):
     return _guard(
         R.seguimiento_informes,
         req.cod_falla, req.agente, req.desde, req.hasta, req.limite,
+        agente_exacto=req.agente_exacto,
     )
 
 
@@ -70,6 +71,7 @@ def rpt_detalle_informes(req: DetalleInformesRequest):
     return _guard(
         R.detalle_informes,
         req.cod_falla, req.agente, req.desde, req.hasta, req.gestion, req.limite,
+        agente_exacto=req.agente_exacto,
     )
 
 
@@ -108,7 +110,8 @@ def rpt_resumen_agentes(req: ResumenAgentesRequest):
     summary="Componentes comprometidos (CNDC)",
 )
 def rpt_componentes_comprometidos(req: FallaFiltroRequest):
-    return _guard(R.componentes_comprometidos, req.cod_falla, req.agente, req.desde, req.hasta)
+    return _guard(R.componentes_comprometidos, req.cod_falla, req.agente, req.desde, req.hasta,
+                  agente_exacto=req.agente_exacto)
 
 
 @router.post(
@@ -117,7 +120,8 @@ def rpt_componentes_comprometidos(req: FallaFiltroRequest):
     summary="Elementos comprometidos (CNDC)",
 )
 def rpt_elementos_comprometidos(req: FallaFiltroRequest):
-    return _guard(R.elementos_comprometidos, req.cod_falla, req.agente, req.desde, req.hasta)
+    return _guard(R.elementos_comprometidos, req.cod_falla, req.agente, req.desde, req.hasta,
+                  agente_exacto=req.agente_exacto)
 
 
 @router.post(
@@ -126,7 +130,8 @@ def rpt_elementos_comprometidos(req: FallaFiltroRequest):
     summary="Fallas de alimentadores (CNDC)",
 )
 def rpt_falla_alimentadores(req: FallaFiltroRequest):
-    return _guard(R.falla_alimentadores, req.cod_falla, req.agente, req.desde, req.hasta)
+    return _guard(R.falla_alimentadores, req.cod_falla, req.agente, req.desde, req.hasta,
+                  agente_exacto=req.agente_exacto)
 
 
 @router.post(
@@ -135,7 +140,8 @@ def rpt_falla_alimentadores(req: FallaFiltroRequest):
     summary="Detalle de interruptores (CNDC)",
 )
 def rpt_det_interruptores(req: FallaFiltroRequest):
-    return _guard(R.det_interruptores, req.cod_falla, req.agente, req.desde, req.hasta)
+    return _guard(R.det_interruptores, req.cod_falla, req.agente, req.desde, req.hasta,
+                  agente_exacto=req.agente_exacto)
 
 
 @router.post(
@@ -144,7 +150,8 @@ def rpt_det_interruptores(req: FallaFiltroRequest):
     summary="Relés operados (CNDC)",
 )
 def rpt_reles_operados(req: FallaFiltroRequest):
-    return _guard(R.reles_operados, req.cod_falla, req.agente, req.desde, req.hasta)
+    return _guard(R.reles_operados, req.cod_falla, req.agente, req.desde, req.hasta,
+                  agente_exacto=req.agente_exacto)
 
 
 @router.post(
@@ -153,7 +160,8 @@ def rpt_reles_operados(req: FallaFiltroRequest):
     summary="Consulta EDAC (solo lectura)",
 )
 def rpt_edac(req: EdacRequest):
-    return _guard(R.edac, req.agente, req.desde, req.hasta)
+    return _guard(R.edac, req.agente, req.desde, req.hasta,
+                  agente_exacto=req.agente_exacto)
 
 
 @router.post(
@@ -163,7 +171,8 @@ def rpt_edac(req: EdacRequest):
     description="Sólo líneas, autotransformadores y transformadores de empresas transmisoras.",
 )
 def rpt_detalle_desconexiones(req: FallaFiltroRequest):
-    return _guard(R.detalle_desconexiones, req.cod_falla, req.agente, req.desde, req.hasta)
+    return _guard(R.detalle_desconexiones, req.cod_falla, req.agente, req.desde, req.hasta,
+                  agente_exacto=req.agente_exacto)
 
 
 @router.get(
@@ -182,7 +191,8 @@ def rpt_edac_analisis():
     summary="Operación EDAC",
 )
 def rpt_operacion_edac(req: FallaFiltroRequest):
-    return _guard(R.operacion_edac, req.cod_falla, req.agente, req.desde, req.hasta)
+    return _guard(R.operacion_edac, req.cod_falla, req.agente, req.desde, req.hasta,
+                  agente_exacto=req.agente_exacto)
 
 
 # ─────────────────────────── Exportar a Excel ───────────────────────────
@@ -193,41 +203,41 @@ def rpt_operacion_edac(req: FallaFiltroRequest):
 _EXPORTABLES: dict[str, tuple[str, Callable[["SisfallaExportRequest"], dict]]] = {
     "seguimiento-informes": (
         "Seguimiento de informes",
-        lambda r: R.seguimiento_informes(r.cod_falla, r.agente, r.desde, r.hasta, r.limite),
+        lambda r: R.seguimiento_informes(r.cod_falla, r.agente, r.desde, r.hasta, r.limite, agente_exacto=r.agente_exacto),
     ),
     "detalle-informes": (
         "Detalle de informes",
-        lambda r: R.detalle_informes(r.cod_falla, r.agente, r.desde, r.hasta, r.gestion, r.limite),
+        lambda r: R.detalle_informes(r.cod_falla, r.agente, r.desde, r.hasta, r.gestion, r.limite, agente_exacto=r.agente_exacto),
     ),
     "detalle-supervisor": ("Fallas por supervisor y operador", lambda r: R.detalle_supervisor(r.desde, r.hasta)),
     "agentes": ("Catálogo de agentes", lambda r: R.agentes()),
     "resumen-agentes": ("Fallas por agente", lambda r: R.resumen_agentes(r.desde, r.hasta)),
     "componentes-comprometidos": (
         "Componentes comprometidos",
-        lambda r: R.componentes_comprometidos(r.cod_falla, r.agente, r.desde, r.hasta),
+        lambda r: R.componentes_comprometidos(r.cod_falla, r.agente, r.desde, r.hasta, agente_exacto=r.agente_exacto),
     ),
     "elementos-comprometidos": (
         "Tiempos de desconexión",
-        lambda r: R.elementos_comprometidos(r.cod_falla, r.agente, r.desde, r.hasta),
+        lambda r: R.elementos_comprometidos(r.cod_falla, r.agente, r.desde, r.hasta, agente_exacto=r.agente_exacto),
     ),
     "falla-alimentadores": (
         "Alimentadores y ENS",
-        lambda r: R.falla_alimentadores(r.cod_falla, r.agente, r.desde, r.hasta),
+        lambda r: R.falla_alimentadores(r.cod_falla, r.agente, r.desde, r.hasta, agente_exacto=r.agente_exacto),
     ),
     "det-interruptores": (
         "Interruptores",
-        lambda r: R.det_interruptores(r.cod_falla, r.agente, r.desde, r.hasta),
+        lambda r: R.det_interruptores(r.cod_falla, r.agente, r.desde, r.hasta, agente_exacto=r.agente_exacto),
     ),
-    "reles-operados": ("Relés operados", lambda r: R.reles_operados(r.cod_falla, r.agente, r.desde, r.hasta)),
-    "edac": ("Configuración EDAC por agente", lambda r: R.edac(r.agente, r.desde, r.hasta)),
+    "reles-operados": ("Relés operados", lambda r: R.reles_operados(r.cod_falla, r.agente, r.desde, r.hasta, agente_exacto=r.agente_exacto)),
+    "edac": ("Configuración EDAC por agente", lambda r: R.edac(r.agente, r.desde, r.hasta, agente_exacto=r.agente_exacto)),
     "detalle-desconexiones": (
         "Desconexiones en transmisión (STI)",
-        lambda r: R.detalle_desconexiones(r.cod_falla, r.agente, r.desde, r.hasta),
+        lambda r: R.detalle_desconexiones(r.cod_falla, r.agente, r.desde, r.hasta, agente_exacto=r.agente_exacto),
     ),
     "edac-analisis": ("Configuración EDAC vigente", lambda r: R.edac_analisis()),
     "operacion-edac": (
         "Operación EDAC",
-        lambda r: R.operacion_edac(r.cod_falla, r.agente, r.desde, r.hasta),
+        lambda r: R.operacion_edac(r.cod_falla, r.agente, r.desde, r.hasta, agente_exacto=r.agente_exacto),
     ),
 }
 

@@ -30,13 +30,22 @@ const maskForOps = (ops) =>
 export const REPORTS = [
   {
     id: "horas-disponibilidad",
-    label: "Disponibilidad por componente",
+    label: "Disponibilidad",
     grupo: "Detalle",
     endpoint: "horas-disponibilidad",
-    componentesFor: (o) => maskForOps([o.ip && 155, o.inf && 156].filter(Boolean)),
-    descripcion: "Componentes con indisponibilidad programada o forzada: % del período disponible y horas desconectadas.",
-    defaults: { ip: true, inf: true },
+    // Nivel Central sólo aplica a generadores (la central sale de la tabla de potencia efectiva).
+    componentesFor: (o) => (o.nivel === "central" ? COMPONENTES_GENERADOR
+      : maskForOps([o.ip && 155, o.inf && 156].filter(Boolean))),
+    descripcion: "% del período disponible y horas desconectadas por indisponibilidad programada o forzada. Por componente: sólo los que tuvieron eventos. Por central: todas sus unidades, ponderadas por su potencia efectiva oficial.",
+    defaults: { nivel: "componente", ip: true, inf: true },
     options: [
+      {
+        type: "radio", key: "nivel", label: "Nivel",
+        options: [
+          { value: "componente", label: "Componente" },
+          { value: "central", label: "Central" },
+        ],
+      },
       { type: "checkbox", key: "ip", label: "Programada" },
       { type: "checkbox", key: "inf", label: "Forzada" },
     ],
@@ -46,6 +55,7 @@ export const REPORTS = [
       unidades: getIds("componente"),
       ip: opt.ip,
       inf: opt.inf,
+      nivel: opt.nivel,
     }),
   },
   {

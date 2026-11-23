@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { SISFALLA_REPORTS } from "../sisfallaReports";
 import OptionsPanel from "../components/OptionsPanel";
@@ -8,6 +8,17 @@ import FallaSearchModal from "../components/FallaSearchModal";
 import { copyResultTsv } from "../copyTsv";
 import { usePersisted } from "../usePersisted";
 import { Rail, QueryPanel, QSec, ResultBar, fechaCorta } from "../shell";
+
+// Opciones del combo Agente: [sigla, nombre]. Siglas repetidas (p. ej. HB) van
+// en una sola opción, porque el filtro exacto por sigla trae a ambos agentes.
+const porSigla = (rows) => {
+  const m = new Map();
+  for (const { sigla, nomPersona } of rows) {
+    const s = sigla.trim();
+    if (s) m.set(s, m.has(s) ? `${m.get(s)} / ${nomPersona}` : nomPersona);
+  }
+  return [...m];
+};
 
 export default function SisfallaModule() {
   const GRUPOS = useMemo(() => [...new Set(SISFALLA_REPORTS.map((r) => r.grupo))], []);
@@ -26,6 +37,14 @@ export default function SisfallaModule() {
   // de una selección. Se conservan al cambiar de reporte (como fechaInicio/
   // fechaFin en los otros módulos).
   const [filtros, setFiltros] = useState({ codFalla: "", agente: "", desde: "", hasta: "" });
+  // Catálogo para el combo Agente (null = cargando). Si falla, vuelve el campo de texto.
+  const [agentes, setAgentes] = useState(null);
+  const [agentesError, setAgentesError] = useState(false);
+  useEffect(() => {
+    api.sisfallaReporteGet("agentes")
+      .then((d) => { const a = porSigla(d.rows || []); if (a.length) setAgentes(a); else setAgentesError(true); })
+      .catch(() => setAgentesError(true));
+  }, []);
   const setFiltro = (k, v) => setFiltros((s) => ({ ...s, [k]: v }));
 
   const [result, setResult] = useState(null);
@@ -49,7 +68,9 @@ export default function SisfallaModule() {
     ? "Sin filtros: trae todo"
     : hayFiltros ? "Filtrado" : "Sin filtros: trae todo";
 
-  const buildBody = () => activeReport.buildBody ? activeReport.buildBody(filtros, opt) : {};
+  // Con el combo, el agente es una sigla y se filtra exacto; con el texto de respaldo, no.
+  const buildBody = () => activeReport.buildBody
+    ? activeReport.buildBody({ ...filtros, agenteExacto: !agentesError }, opt) : {};
 
   const generar = async () => {
     setRunning(true); setError(null); setResult(null);
@@ -131,8 +152,18 @@ export default function SisfallaModule() {
               )}
               {campos.agente && (
                 <label className="dfield"><span>Agente</span>
-                  <input type="text" placeholder="Sigla o nombre" value={filtros.agente} onKeyDown={onKey}
-                    onChange={(e) => setFiltro("agente", e.target.value)} /></label>
+                  {agentesError ? (<>
+                    <input type="text" placeholder="Sigla o nombre" value={filtros.agente} onKeyDown={onKey}
+                      onChange={(e) => setFiltro("agente", e.target.value)} />
+                    <small className="field-hint">No se pudo cargar la lista de agentes: escriba la sigla o el nombre.</small>
+                  </>) : (
+                    <select value={filtros.agente} disabled={!agentes} onKeyDown={onKey}
+                      onChange={(e) => setFiltro("agente", e.target.value)}>
+                      <option value="">{agentes ? "Todos" : "Cargando agentes…"}</option>
+                      {agentes?.map(([s, n]) => <option key={s} value={s}>{s} — {n}</option>)}
+                    </select>
+                  )}
+                </label>
               )}
               {(campos.desde || campos.hasta) && (
                 <div className="dates" title={gestionActiva ? "No aplica: la gestión (año) ya reemplaza el rango de fechas." : undefined}>

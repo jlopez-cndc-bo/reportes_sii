@@ -145,3 +145,29 @@ def test_norm_dominio():
     assert _norm("Rectificatorio") == "RECTIFICATORIO"
     assert _norm("En Elaboración") == "EN ELABORACION"
     assert _norm(None) == ""
+
+
+# ------------------------------------------------ agente exacto (combo)
+
+def test_filtro_agente_exacto_compara_siglas_por_igualdad():
+    from app.sisfalla.reportes import _filtro_cod_falla_agente
+    params: dict = {}
+    sql = _filtro_cod_falla_agente(
+        "X", params, falla_col="f",
+        agente_expr="NVL(respo.SIGLA, '') || ' ' || NVL(propie.SIGLA, '')",
+        cod_falla=None, agente=" ENDE ", exacto=True,
+    )
+    assert "LIKE" not in sql
+    assert "UPPER(TRIM(respo.SIGLA)) = UPPER(:agente)" in sql
+    assert "UPPER(TRIM(propie.SIGLA)) = UPPER(:agente)" in sql
+    assert params == {"agente": "ENDE"}
+
+
+def test_filtro_agente_texto_sigue_siendo_like():
+    from app.sisfalla.reportes import _filtro_cod_falla_agente
+    params: dict = {}
+    sql = _filtro_cod_falla_agente(
+        "X", params, falla_col="f", agente_expr="NVL(p.SIGLA, '')",
+        cod_falla=None, agente="ENDE",
+    )
+    assert "LIKE UPPER(:agente)" in sql and params == {"agente": "%ENDE%"}

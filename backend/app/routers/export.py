@@ -6,7 +6,6 @@ from fastapi.responses import StreamingResponse
 
 from ..export_excel import build_workbook
 from ..reports import (
-    horas_disponibilidad,
     horas_no_disponibilidad,
     horas_tipo_operacion,
     programacion,
@@ -24,6 +23,7 @@ from .reports import (
     _tipos,
     _validar,
     _validar_tipo_prog,
+    disponibilidad_fn,
 )
 
 router = APIRouter(prefix="/api/exportar", tags=["export"])
@@ -44,13 +44,14 @@ def _xlsx_response(result: dict, label: str, f1, f2) -> StreamingResponse:
 
 @router.post(
     "/horas-disponibilidad",
-    summary="Disponibilidad por componente, como archivo .xlsx",
+    summary="Disponibilidad por componente o central, como archivo .xlsx",
 )
 def exp_horas_disponibilidad(req: HorasDisponibilidadRequest):
     _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_EVENTOS)
-    res = _guard(horas_disponibilidad.report, req.fecha_inicio, req.fecha_fin,
+    res = _guard(disponibilidad_fn(req.nivel), req.fecha_inicio, req.fecha_fin,
                  req.unidades, req.ip, req.inf)
-    return _xlsx_response(res, "Disponibilidad por componente", req.fecha_inicio, req.fecha_fin)
+    label = "Disponibilidad por central" if req.nivel == "central" else "Disponibilidad por componente"
+    return _xlsx_response(res, label, req.fecha_inicio, req.fecha_fin)
 
 
 @router.post(

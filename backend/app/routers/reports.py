@@ -96,18 +96,27 @@ def arbol(req: TreeRequest):
 @router.post(
     "/reportes/horas-disponibilidad",
     response_model=ReportResponse,
-    summary="Disponibilidad por componente",
+    summary="Disponibilidad por componente o central",
     description=(
         "Una fila por componente con indisponibilidad programada o forzada en el rango; "
-        f"los demás no aparecen. Rango máximo: {MAX_DIAS_EVENTOS} días."
+        "los demás no aparecen. Con `nivel='central'`: una fila por central con todas sus "
+        "unidades, ponderadas por la potencia efectiva oficial. "
+        f"Rango máximo: {MAX_DIAS_EVENTOS} días."
     ),
 )
 def rpt_horas_disponibilidad(req: HorasDisponibilidadRequest):
     _validar(req.fecha_inicio, req.fecha_fin, MAX_DIAS_EVENTOS)
     return _guard(
-        horas_disponibilidad.report,
+        disponibilidad_fn(req.nivel),
         req.fecha_inicio, req.fecha_fin, req.unidades, req.ip, req.inf,
     )
+
+
+def disponibilidad_fn(nivel: str):
+    """Reporte de disponibilidad según el nivel pedido (componente | central)."""
+    if nivel not in ("componente", "central"):
+        raise HTTPException(status_code=400, detail=f"Nivel inválido: {nivel}")
+    return horas_disponibilidad.report_central if nivel == "central" else horas_disponibilidad.report
 
 
 @router.post(
