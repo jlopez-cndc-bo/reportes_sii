@@ -201,6 +201,8 @@ button:disabled { cursor: not-allowed; }
 .seg:hover { color: var(--brand-dark); }
 .seg--on { background: var(--brand); color: var(--brand-ink); font-weight: 600; }
 .seg--on:hover { color: var(--brand-ink); }
+/* Segmentados de 4+ botones que no caben en el panel con el relleno normal */
+.opt-radios--compact .seg { padding: 0 9px; }
 .opt-check, .totals-toggle { display: flex; align-items: flex-start; gap: 7px; min-height: 26px; padding-top: 4px; font-size: 13px; cursor: pointer; }
 .opt-check--wide { grid-column: 1 / -1; }
 .opt-check input, .totals-toggle input, .tree-label input { flex: none; width: 15px; height: 15px; margin: 1px 0 0; accent-color: var(--brand); }

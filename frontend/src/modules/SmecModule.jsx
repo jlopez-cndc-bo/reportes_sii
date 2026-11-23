@@ -74,7 +74,9 @@ const GRUPOS = ["Mediciones", "Índices", "SIN"];
 const PICO_COLS_AVISO = 10;
 
 // "Comparar con" de Energía: la semana anterior sólo tiene sentido en Día.
-const COMPARAR = [["ninguno", "Ninguno"], ["semana", "Semana anterior"], ["anio", "Año anterior"]];
+// [clave, nombre (resumen y title), texto corto del botón para que entre en una línea]
+const COMPARAR = [["ninguno", "Ninguno", "Ninguno"], ["semana", "Semana anterior", "Semana ant."],
+  ["anio", "Año anterior", "Año ant."]];
 const opcionesComparar = (id) => COMPARAR.filter(([k]) => k !== "semana" || id === "energia_dia");
 
 // Reportes con serie temporal graficable (X = intervalos/días/meses/años).
@@ -321,7 +323,7 @@ export default function SmecModule() {
             {report.interval && (
               <div className="opt-group opt-group--stack">
                 <span className="opt-title">Nivel</span>
-                <div className="opt-radios">
+                <div className="opt-radios opt-radios--compact">
                   {[["agente", "Agente"], ["central", "Central"], ["medidor", "Medidor"],
                     ["drill", "Jerárquico"]].map(([n, lbl]) => (
                     <button key={n} type="button" aria-pressed={nivel === n}
@@ -336,10 +338,10 @@ export default function SmecModule() {
               <div className="opt-group opt-group--stack">
                 <span className="opt-title">Comparar con</span>
                 <div className="opt-radios">
-                  {opcionesComparar(report.id).map(([k, lbl]) => (
-                    <button key={k} type="button" aria-pressed={comparar === k}
+                  {opcionesComparar(report.id).map(([k, lbl, corto]) => (
+                    <button key={k} type="button" aria-pressed={comparar === k} title={lbl}
                       className={`seg ${comparar === k ? "seg--on" : ""}`} onClick={() => setComparar(k)}>
-                      {lbl}</button>
+                      {corto}</button>
                   ))}
                 </div>
               </div>
