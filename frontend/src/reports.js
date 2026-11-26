@@ -145,6 +145,8 @@ export const REPORTS = [
   },
   {
     id: "indices",
+    // Oculto hasta que Operaciones valide las reglas (correo 26/11/2026); el endpoint sigue activo.
+    oculto: true,
     label: "Desempeño (FOR, EFOR, EFORd)",
     grupo: "Índices",
     endpoint: "indices",
@@ -225,4 +227,4 @@ export const REPORTS = [
       smec: opt.smec,
     }),
   },
-];
+].filter((r) => !r.oculto);
