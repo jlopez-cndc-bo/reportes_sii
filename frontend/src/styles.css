@@ -392,3 +392,99 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .motivo-input { width: 100%; padding: 6px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); font: inherit; }
 .dfield--sep { margin-top: 10px; }
 .form-acciones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
+/* ── Monitores (tablero ejecutivo) ── */
+.mon-content { overflow: auto; gap: 14px; }
+.mon-titulo { margin: 0; font-size: 22px; font-weight: 600; color: var(--brand-dark); }
+.mon-sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.mon-sec-head h2 { margin: 0; font-size: 16px; color: var(--ink); }
+.mon-acciones { margin-left: auto; display: inline-flex; gap: 6px; }
+.mon-meta { font-size: 12px; color: var(--muted); }
+.mon-ahora { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 14px; background: var(--tint); }
+.mon-ahora-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.mon-bloque { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 10px 12px; min-width: 0; }
+.mon-etq { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.mon-cifra { font-size: 30px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1.15; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.mon-cifra-2 { font-size: 18px; color: var(--ink-soft); margin-left: 6px; }
+.mon-unidad { font-size: 15px; font-weight: 500; color: var(--muted); }
+.mon-sub { font-size: 13px; color: var(--ink-soft); margin-top: 2px; }
+.mon-fecha input { height: 32px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); font: inherit; color: var(--ink); }
+.mon-curvas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.mon-curva { margin: 0; background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 8px 10px; min-width: 0; }
+.mon-curva figcaption { font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 4px; }
+.mon-hoy { margin-top: 10px; }
+.mon-fuente { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.mon-nivel { font-weight: 600; color: var(--ink-soft); }
+.mon-nota { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+.mon-det summary { cursor: pointer; color: var(--brand-dark); font-size: 13px; font-weight: 600; margin-top: 4px; }
+.mon-det--inline { display: inline-block; }
+.mon-det--inline ul { margin: 4px 0 0; padding-left: 18px; font-size: 12px; }
+.mon-tabla-wrap { max-height: 260px; overflow: auto; border: 1px solid var(--line-soft); border-radius: var(--radius-sm); margin-top: 6px; }
+.mon-tabla { width: 100%; border-collapse: collapse; font-size: 12px; }
+.mon-tabla th { position: sticky; top: 0; background: var(--tint); text-align: left; padding: 4px 6px; }
+.mon-tabla td { padding: 3px 6px; border-top: 1px solid var(--line-soft); }
+.mon-tabla .n { text-align: right; font-variant-numeric: tabular-nums; }
+.mon-tag { display: inline-block; margin-left: 5px; padding: 0 5px; border-radius: 3px; font-size: 11px; font-weight: 600; background: var(--line-soft); color: var(--ink-soft); vertical-align: middle; }
+.mon-tag--warn { background: var(--warn-bg); color: var(--warn-ink); border: 1px solid var(--warn-line); }
+.mon-alertas { list-style: none; margin: 6px 0 0; padding: 0; }
+.mon-alertas li { margin-bottom: 6px; font-size: 13px; }
+.mon-salud { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
+.mon-periodo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mon-seg { min-height: 34px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 17px; background: var(--panel); color: var(--brand-dark); font-weight: 600; }
+.mon-seg[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.mon-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; transition: opacity .2s; }
+.mon-grid--cargando { opacity: .75; }
+.mon-card { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 14px; background: var(--panel); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mon-dom { margin: 0 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.mon-ind { margin: 0; font-size: 16px; font-weight: 600; color: var(--brand-dark); }
+.mon-hist { font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
+.mon-hist--nuevo { font-weight: 600; color: var(--brand-dark); }
+.mon-comp { list-style: none; margin: 6px 0 0; padding: 0; font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.mon-comp--compacto { margin-top: 2px; font-size: 12px; }
+.mon-comp-ant, .mon-comp-sin { color: var(--muted); }
+.mon-spark { width: 100%; max-width: 260px; height: 40px; margin-top: 6px; }
+.mon-meta-def { font-size: 12px; color: var(--muted); }
+.mon-sem { font-size: 12px; font-weight: 600; }
+.mon-sem--verde { color: #00752f; } /* --ok sobre blanco no llega a 4.5:1 */
+.mon-sem--ambar { color: var(--warn); }
+.mon-sem--rojo { color: var(--danger); }
+.mon-sec { border-top: 1px solid var(--line-soft); padding-top: 8px; margin-top: 8px; }
+.mon-sec-fila { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.mon-sec-nombre { color: var(--ink-soft); }
+.mon-sec-valor { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mon-ir { margin-top: auto; align-self: flex-start; padding: 8px 0 0; border: none; background: none; color: var(--brand-dark); font-weight: 600; cursor: pointer; }
+.mon-ir:hover { text-decoration: underline; }
+.mon-niveles { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line-soft); padding-top: 8px; }
+@media (max-width: 1200px) {
+  .mon-ahora-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mon-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .mon-ahora-grid, .mon-grid, .mon-curvas { grid-template-columns: minmax(0, 1fr); }
+  .modwrap { min-width: 0; }
+  .mon-acciones { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .mon-grid { transition: none; } }
+
+.opt-checklist { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.opt-checklist .opt-title { width: 100%; padding: 0; }
+.opt-hint { width: 100%; font-size: 12px; color: var(--muted); }
+.mon-temp { margin-top: 12px; }
+.mon-tabla-wrap--auto { max-height: none; }
+.mon-tabla tbody th { text-align: left; font-weight: 600; padding: 3px 6px; border-top: 1px solid var(--line-soft); white-space: nowrap; }
+.mon-aviso-smec { margin: 4px 0; padding: 4px 8px; font-size: 12px; border-radius: var(--radius-sm); background: var(--warn-bg); color: var(--warn-ink); border: 1px solid var(--warn-line); }
+.mon-pot { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 6px; }
+.mon-pot > div { display: flex; flex-direction: column; min-width: 150px; }
+.mon-pot-v { font-size: 20px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.mon-pot-l { font-size: 12px; color: var(--muted); max-width: 240px; }
+.options > .opt-checklist { grid-column: 1 / -1; }
+.mon-cifra--previa { font-size: 22px; }
+.mon-sec-head--periodo { margin-top: 22px; }
+.mon-ecuacion { margin: 6px 0 0; max-width: 560px; }
+.mon-ecuacion > div { display: flex; justify-content: space-between; gap: 16px; padding: 3px 0; border-top: 1px solid var(--line-soft); }
+.mon-ecuacion > div:first-child { border-top: 0; }
+.mon-ecuacion dt { color: var(--ink-soft); }
+.mon-ecuacion dd { margin: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mon-ecuacion-total { border-top: 2px solid var(--line-strong) !important; }
+.mon-ecuacion-total dt { font-weight: 600; color: var(--ink); }
+.mon-ecuacion-total dd { font-size: 20px; font-weight: 600; color: var(--ink); }

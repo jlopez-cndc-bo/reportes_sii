@@ -1,12 +1,12 @@
 """Reportes SMEC del SIN completo (grupo «SIN» del rail).
 
 Se calculan siempre con TODAS las centrales de la dirección; el árbol sólo
-elige qué centrales se desglosan (pico del SIN).
+elige qué centrales se desglosan (potencia de punta del SIN).
 """
 from datetime import datetime, timedelta
 from typing import Any
 
-from ..db import call_proc
+from ..db import call_proc, query
 from . import estructura
 from .reportes import PKG, _idx, _interval_labels, energia_dia
 
@@ -35,7 +35,7 @@ def _pico_del_dia(cols: list[str], rows: list[tuple]) -> dict[str, Any] | None:
 
 
 def pico_sin(f1: datetime, f2: datetime, ids: list[int], pct: bool = False) -> dict[str, Any]:
-    """Una fila por día: hora del pico del SIN (máxima inyección total en
+    """Una fila por día: hora de la punta del SIN (máxima inyección total en
     15 min), total y aporte de cada central marcada; «Resto» = las demás."""
     sel = list(dict.fromkeys(ids))
     nombres: dict[int, str] = {}
@@ -62,9 +62,9 @@ def pico_sin(f1: datetime, f2: datetime, ids: list[int], pct: bool = False) -> d
         out.append(fila)
     fmt = "0.0" if pct else "num"
     columns = [{"key": "fecha", "label": "Fecha"},
-               {"key": "hora", "label": "Hora pico"},
+               {"key": "hora", "label": "Hora de punta"},
                {"key": "total", "label": "Total SIN (kW)", "format": "num", "sinTotal": True}]
-    # Sumar picos de días distintos no tiene sentido: sin fila TOTAL.
+    # Sumar puntas de días distintos no tiene sentido: sin fila TOTAL.
     suf = " %" if pct else ""
     columns += [{"key": f"c{c}", "label": nombres.get(c, str(c)) + suf, "format": fmt, "sinTotal": True}
                 for c in sel]
@@ -104,3 +104,48 @@ def conciliacion(f1: datetime, f2: datetime) -> dict[str, Any]:
     return {"table": "CONCILIACION", "columns": columns,
             "rows": _conciliar(totales("iny"), totales("ret"), dias),
             "aviso": "Diferencia = inyección − retiro: pérdidas y desbalance de medición."}
+
+
+def _curvas(filas: list[dict[str, Any]]) -> dict[int, list[float | None]]:
+    """{dir: 96 valores} desde filas (dir, intervalo 1..96, potencia). Pura."""
+    out: dict[int, list[float | None]] = {-1: [None] * 96, 1: [None] * 96}
+    for f in filas:
+        i = int(f["intervalo"]) - 1
+        if int(f["dir"]) in out and 0 <= i < 96 and f["potencia"] is not None:
+            out[int(f["dir"])][i] = float(f["potencia"])
+    return out
+
+
+def generacion_demanda(fecha: datetime) -> dict[str, Any]:
+    """Curva de un día cada 15 min: generación (inyección) y demanda (retiros) del SIN, y su
+    diferencia. La demanda es la que publica el CNDC (la punta del día es su máximo)."""
+    if fecha.date() > datetime.now().date():
+        raise ValueError("La fecha no puede ser futura.")
+    filas = query("""
+        SELECT r.dir, c.intervalo, SUM(c.potencia) potencia
+          FROM smec.sm_potencia_cen_intervalo c
+          JOIN (SELECT DISTINCT niv4, dir FROM dw_relaciones) r ON r.niv4 = c.id
+         WHERE c.fecha = TRUNC(:f)
+         GROUP BY r.dir, c.intervalo""", {"f": fecha})
+    c = _curvas(filas)
+    gen, dem = c[_INY], c[1]
+    dif = [round(g - d, 6) if g is not None and d is not None else None for g, d in zip(gen, dem)]
+    labels = _interval_labels(96)
+
+    def fila(nombre: str, vals: list[float | None]) -> dict[str, Any]:
+        con = [(v, i) for i, v in enumerate(vals) if v is not None]
+        vmax, imax = max(con) if con else (None, None)
+        return {"nombre": nombre, **{f"i{i}": v for i, v in enumerate(vals)},
+                "maximo": vmax, "hora_max": labels[imax] if con else None}
+
+    columns = [{"key": "nombre", "label": "Curva"},
+               *({"key": f"i{i}", "label": lab, "format": "num", "sinTotal": True}
+                 for i, lab in enumerate(labels)),
+               {"key": "maximo", "label": "Máx", "format": "num", "resumen": True, "sinTotal": True},
+               {"key": "hora_max", "label": "Hora máx", "resumen": True}]
+    rows = [] if not any(v is not None for v in gen + dem) else [
+        fila("Generación (inyección)", gen), fila("Demanda (retiros)", dem),
+        fila("Diferencia (pérdidas y desbalance)", dif)]
+    return {"table": "GENERACION_DEMANDA", "columns": columns, "rows": rows,
+            "aviso": "Demanda = retiros SMEC: su máximo es la potencia de punta del día que publica el "
+                     "CNDC. Diferencia = generación − demanda (pérdidas y desbalance de medición)."}

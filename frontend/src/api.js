@@ -55,6 +55,7 @@ export const api = {
   arbol: (body) => post("/api/arbol", body),
   reporte: (endpoint, body) => post(`/api/reportes/${endpoint}`, body),
   exportar: (endpoint, body) => download(`/api/exportar/${endpoint}`, body),
+  zonasTermicas: () => send("GET", "/api/reportes/zonas-termicas"),
   // SMEC
   smecEstructura: () => fetch("/api/smec/estructura").then((r) => r.json()),
   smecReporte: (body) => post("/api/smec/reporte", body),

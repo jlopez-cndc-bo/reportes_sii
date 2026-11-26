@@ -143,4 +143,86 @@ export const REPORTS = [
       },
     }),
   },
+  {
+    id: "indices",
+    label: "Desempeño (FOR, EFOR, EFORd)",
+    grupo: "Índices",
+    endpoint: "indices",
+    componentesFor: () => COMPONENTES_GENERADOR,
+    descripcion: "Por generador marcado: FOR = FOH/(FOH+SH); EFOR = (FOH+EFDH)/(FOH+SH+EFDHRS); EFORd = (f·FOH+fp·EFDH)/(SH+f·FOH). "
+      + "SH: horas en operación normal o limitada. RSH: horas en reserva (sin eventos). AH = SH+RSH. "
+      + "FOH: horas en forzada que viene de operación normal o limitada (salida forzada). "
+      + "Ind. en reserva: horas en forzada que viene de parada por falla en el arranque. "
+      + "EFDH = Σ(Plimitada·t)/Pefectiva + Ind. en reserva/RSH; EFDHRS = Ind. en reserva/RSH. "
+      + "f = (1/r+1/T)/(1/r+1/T+1/D), con r = FOH/salidas, T = RSH/arranques intentados, D = SH/arranques exitosos; fp = SH/AH. "
+      + "Cálculo provisional según el documento de Operaciones del 24/11/2026.",
+    defaults: {},
+    options: [],
+    buildBody: (shared, opt, getIds) => ({
+      fecha_inicio: shared.fechaInicio,
+      fecha_fin: shared.fechaFin,
+      unidades: getIds("componente"),
+    }),
+  },
+  {
+    id: "punta-temperatura",
+    label: "Potencia de punta y temperatura",
+    grupo: "Temperatura",
+    endpoint: "punta-temperatura",
+    sinArbol: true,
+    componentesFor: () => COMPONENTES_GENERADOR,
+    descripcion: "Por día: potencia de punta del SIN (retiros SMEC, MW), su hora y la temperatura de cada zona térmica en esa hora, con la correlación entre la temperatura máxima y la punta.",
+    defaults: {},
+    options: [],
+    buildBody: (shared) => ({
+      fecha_inicio: shared.fechaInicio,
+      fecha_fin: shared.fechaFin,
+    }),
+  },
+  {
+    id: "temperatura-consulta",
+    label: "Consulta de temperaturas",
+    grupo: "Temperatura",
+    endpoint: "temperatura-consulta",
+    sinArbol: true,
+    grafico: true,
+    unidad: "°C",
+    componentesFor: () => COMPONENTES_GENERADOR,
+    descripcion: "Temperatura horaria de las zonas térmicas elegidas: las horas en columnas y una fila por fecha y zona, agrupadas por fecha, con la máxima, la mínima y el promedio del día. Se ve como tabla o gráfico.",
+    defaults: { zonas: null },
+    options: [
+      { type: "checklist", key: "zonas", label: "Zonas", source: "zonas", hint: "Vienen todas marcadas; desmarque las que no quiera ver." },
+    ],
+    buildBody: (shared, opt) => ({
+      fecha_inicio: shared.fechaInicio,
+      fecha_fin: shared.fechaFin,
+      zonas: opt.zonas || [],
+    }),
+  },
+  {
+    id: "potencia-temperatura",
+    label: "Potencia térmica por temperatura",
+    grupo: "Potencia",
+    endpoint: "potencia-temperatura",
+    sinArbol: true,
+    grafico: true,
+    unidad: "MW",
+    componentesFor: () => COMPONENTES_GENERADOR,
+    descripcion: "Potencia efectiva de cada unidad térmica a la temperatura horaria de su zona (curva vigente potencia–temperatura), frente a la potencia efectiva oficial a temperatura media. Opcional: lo medido por el medidor propio en SMEC y el margen. Hasta 31 días.",
+    defaults: { nivel: "zona", smec: false },
+    options: [
+      {
+        type: "radio", key: "nivel", label: "Nivel",
+        options: [{ value: "zona", label: "Zona térmica" }, { value: "unidad", label: "Unidad" }],
+      },
+      { type: "checkbox", key: "smec", label: "Comparar con lo medido en SMEC", wide: true,
+        title: "Sólo unidades con medidor propio en SMEC; agrega lo medido (promedio de la hora) y el margen." },
+    ],
+    buildBody: (shared, opt) => ({
+      fecha_inicio: shared.fechaInicio,
+      fecha_fin: shared.fechaFin,
+      nivel: opt.nivel,
+      smec: opt.smec,
+    }),
+  },
 ];

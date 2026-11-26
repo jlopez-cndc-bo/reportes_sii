@@ -63,7 +63,7 @@ export function sumaLimpia(valores) {
 
 const sumable = (c) => isNumericFmt(c.format) && !c.sinTotal && !c.hidden;
 
-// ¿Hay alguna columna que la fila TOTAL pueda sumar? (p. ej. el pico del SIN no).
+// ¿Hay alguna columna que la fila TOTAL pueda sumar? (p. ej. la potencia de punta del SIN no).
 export function tieneTotales(result) {
   return !!result && result.columns.some(sumable);
 }

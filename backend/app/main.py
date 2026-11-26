@@ -1,4 +1,5 @@
 """Punto de entrada FastAPI del backend de Reportes CNDC."""
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -8,13 +9,16 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
 from .db import close_pool, init_pool, pool_ready
-from .routers import export, hfd, reports, sisfalla, smec
+from .routers import export, hfd, reports, sisfalla, smec, tablero
 from .security import require_auth
+from .tablero.servicio import precalentar
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_pool()
+    if pool_ready():
+        threading.Thread(target=precalentar, daemon=True).start()
     yield
     close_pool()
 
@@ -45,6 +49,10 @@ _TAGS_METADATA = [
     {
         "name": "export",
         "description": "Los reportes del Reporte de la Operación, como archivo .xlsx descargable.",
+    },
+    {
+        "name": "tablero",
+        "description": "Tablero «Monitores»: indicadores por periodo con comparaciones, tendencia, fuente y fecha del dato; «Ahora» con HFD, unidades indisponibles y alertas.",
     },
     {
         "name": "sisfalla",
@@ -80,6 +88,7 @@ app.include_router(export.router, dependencies=[Depends(require_auth)])
 app.include_router(smec.router, dependencies=[Depends(require_auth)])
 app.include_router(sisfalla.router, dependencies=[Depends(require_auth)])
 app.include_router(hfd.router, dependencies=[Depends(require_auth)])
+app.include_router(tablero.router, dependencies=[Depends(require_auth)])
 
 
 @app.get("/health")

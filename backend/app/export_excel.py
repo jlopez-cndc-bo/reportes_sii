@@ -87,7 +87,7 @@ def _llenar_hoja(ws, result: dict[str, Any], titulo: str, totales: bool = False)
                 cell.number_format = nf
         r += 1
 
-    # Sin columnas sumables (p. ej. pico del SIN) no hay fila TOTAL que mostrar.
+    # Sin columnas sumables (p. ej. potencia de punta del SIN) no hay fila TOTAL que mostrar.
     if totales and result["rows"] and any(_es_sumable(c) for c in cols[1:]):
         _fila_total(ws, cols, result["rows"], header_row + 1, r)
 

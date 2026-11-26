@@ -90,6 +90,38 @@ class ReportResponse(BaseModel):
     )
 
 
+class TemperaturaRequest(BaseModel):
+    """Rango de fechas para la relación entre potencia de punta y temperatura."""
+
+    fecha_inicio: datetime = Field(..., examples=["2026-11-01T00:00:00"])
+    fecha_fin: datetime = Field(..., examples=["2026-11-30T00:00:00"])
+
+
+class PotenciaTemperaturaRequest(BaseModel):
+    """Potencia efectiva de las térmicas a la temperatura horaria de su zona."""
+
+    fecha_inicio: datetime = Field(..., examples=["2026-11-20T00:00:00"])
+    fecha_fin: datetime = Field(..., examples=["2026-11-20T00:00:00"])
+    nivel: str = Field("zona", description="'unidad' | 'zona'.")
+    smec: bool = Field(False, description="Comparar con lo medido por el medidor propio de cada unidad en SMEC.")
+
+
+class IndicesRequest(BaseModel):
+    """Índices de desempeño (FOR, EFOR, EFORd) de los generadores elegidos."""
+
+    fecha_inicio: datetime = Field(..., examples=["2026-01-01T00:00:00"])
+    fecha_fin: datetime = Field(..., examples=["2026-10-31T00:00:00"])
+    unidades: list[int] = Field(..., min_length=1, description="IDs de generador.")
+
+
+class TemperaturaConsultaRequest(BaseModel):
+    """Consulta de temperaturas por zona térmica."""
+
+    fecha_inicio: datetime = Field(..., examples=["2026-11-01T00:00:00"])
+    fecha_fin: datetime = Field(..., examples=["2026-11-30T00:00:00"])
+    zonas: list[str] = Field(default_factory=list, description="id_universal de zona (ZTGCH01…); vacío = todas.")
+
+
 class HorasDisponibilidadRequest(BaseModel):
     """Disponibilidad por componente o por central, en el rango dado."""
 
@@ -159,7 +191,7 @@ class SmecReporteRequest(BaseModel):
             "Uno de: 'potencia_15min', 'potencia_hora', 'potencia_max_diario', "
             "'potencia_max_entre_fechas', 'energia_dia', 'energia_mes', "
             "'energia_anio', 'factor_dia', 'factor_periodo', 'capacidad_sistema', "
-            "'mix_tecnologia', 'pico_sin', 'conciliacion', 'potencia_limitada'."
+            "'mix_tecnologia', 'pico_sin', 'generacion_demanda', 'conciliacion', 'potencia_limitada'."
         ),
         examples=["potencia_hora"],
     )

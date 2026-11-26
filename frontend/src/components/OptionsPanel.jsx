@@ -36,6 +36,23 @@ export default function OptionsPanel({ options, values, onChange }) {
             </label>
           );
         }
+        if (opt.type === "checklist") {
+          const sel = values[opt.key] || [];
+          const toggle = (v) => set(opt.key, sel.includes(v) ? sel.filter((x) => x !== v) : [...sel, v]);
+          return (
+            <fieldset className="opt-checklist" key={opt.key}>
+              <legend className="opt-title">{opt.label}</legend>
+              {opt.options.length === 0 && <span className="opt-hint">Cargando…</span>}
+              {opt.options.map((o) => (
+                <label className="opt-check" key={o.value} title={o.title}>
+                  <input type="checkbox" checked={sel.includes(o.value)} onChange={() => toggle(o.value)} />
+                  {o.label}
+                </label>
+              ))}
+              {opt.hint && <span className="opt-hint">{opt.hint}</span>}
+            </fieldset>
+          );
+        }
         if (opt.type === "number") {
           const disabled = !!(opt.disabledIf && opt.disabledIf(values));
           return (

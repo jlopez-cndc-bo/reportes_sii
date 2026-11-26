@@ -1,0 +1,5 @@
+{
+  "_nota": "Reglas de clasificación de las forzadas (156) por causa, según el documento de Operaciones del 24/11/2026. Prefijos sin distinguir mayúsculas; lista vacía = cualquier causa. Pendiente de validación por Operaciones.",
+  "causa_salida_forzada": ["Disparo"],
+  "causa_arranque_fallido": ["Falla en el arranque"]
+}

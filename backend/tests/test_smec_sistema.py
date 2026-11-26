@@ -24,3 +24,11 @@ def test_conciliacion_diferencia_y_porcentaje():
     filas = _conciliar({"D0": 1000.0, "D1": None}, {"D0": 970.0, "D1": 5.0}, dias)
     assert filas[0] == {"fecha": "01/10/2026", "iny": 1000.0, "ret": 970.0, "dif": 30.0, "pct": 3.0}
     assert filas[1]["dif"] is None and filas[1]["pct"] is None
+
+
+def test_curvas_generacion_demanda_por_direccion_e_intervalo():
+    from app.smec.sistema import _curvas
+    c = _curvas([{"dir": -1, "intervalo": 1, "potencia": 10.5}, {"dir": 1, "intervalo": 96, "potencia": 9},
+                 {"dir": 1, "intervalo": 97, "potencia": 1}, {"dir": 0, "intervalo": 1, "potencia": 1}])
+    assert c[-1][0] == 10.5 and c[-1][1] is None
+    assert c[1][95] == 9.0 and len(c[1]) == 96

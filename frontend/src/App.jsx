@@ -1,15 +1,17 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { api } from "./api";
 import IndispModule from "./modules/IndispModule";
 import SmecModule from "./modules/SmecModule";
 import SisfallaModule from "./modules/SisfallaModule";
 import ScadaModule from "./modules/ScadaModule";
+import MonitoresModule from "./modules/MonitoresModule";
 import { ShellContext } from "./shell";
 import { usePersisted } from "./usePersisted";
 import { useDialog } from "./useDialog";
 import { Close } from "./icons";
 
 const MODULOS = [
+  { id: "monitores", label: "Monitores", nombre: "Tablero ejecutivo del SIN", beta: true },
   { id: "indisp", label: "Reporte de la Operación" },
   { id: "smec", label: "Sistema de Medición Comercial", nombre: "SMEC" },
   { id: "sisfalla", label: "Sistema de Fallas", beta: true },
@@ -28,6 +30,16 @@ function HelpModal({ onClose }) {
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Cerrar"><Close /></button>
         </div>
         <div className="modal-body">
+          <h3>Monitores</h3>
+          <p><b>Operación del día</b> (hoy por defecto; elija otra fecha arriba): demanda del SIN
+             (HFD), potencia de punta (SMEC; si aún no tiene el día, muestra el último cargado con su
+             fecha), unidades indisponibles, potencia del parque estimada a la temperatura real,
+             temperatura por zona térmica, curvas del día y alertas. Debajo, los
+             <b> indicadores del período</b> elegido, independientes de esa fecha, con su
+             comparación contra el periodo anterior y el mismo del año anterior y la tendencia de 12 meses. Cada cifra dice de qué dato sale (SMEC oficial, HFD operativo o registro
+             de eventos) y a qué fecha. Sin una meta aprobada se lee «Meta por definir».
+             El enlace <b>…/#/</b> abre siempre esta pantalla.</p>
+
           <h3>Jerarquía de elementos</h3>
           <p><b>Agente → Central → Unidad/Medidor.</b> Marque en el árbol el nivel que desea;
              al marcar un padre se marcan sus hijos.</p>
@@ -51,13 +63,24 @@ function HelpModal({ onClose }) {
             <li><b>192</b> Reprogramación</li>
           </ul>
 
+          <h3>Reporte de la Operación · Temperatura</h3>
+          <p>Temperatura horaria de las <b>zonas térmicas</b> (POSTDES): horas en columnas, una fila por fecha y zona.
+             «Demanda máxima y temperatura» cruza, día por día, la potencia de punta del SIN
+             (retiros SMEC) con la temperatura de cada zona a esa hora.</p>
+
+          <h3>Reporte de la Operación · Potencia térmica por temperatura</h3>
+          <p>La potencia de una térmica baja cuando sube la temperatura. Se evalúa la curva
+             potencia–temperatura vigente de cada unidad en la temperatura horaria de su zona y se
+             compara con la potencia efectiva oficial (a temperatura media). Los demás generadores
+             mantienen la potencia efectiva del Excel.</p>
+
           <h3>Sistema de Medición Comercial · Indicadores de potencia</h3>
           <p><b>Servicio local</b> es la energía de los intervalos con potencia
              negativa (la central consume); <b>energía bruta</b>, la de los
              positivos; <b>neta</b>, la suma de ambas.</p>
 
           <h3>Sistema de Medición Comercial · SIN</h3>
-          <p><b>Pico diario</b>: para cada día, el intervalo de 15 min con la
+          <p><b>Potencia de punta (inyección)</b>: para cada día, el intervalo de 15 min con la
              mayor inyección total del SIN y el aporte de las centrales marcadas
              (las demás van en «Resto»). <b>Conciliación</b>: inyección menos
              retiro por día, es decir, pérdidas y desbalance de medición.
@@ -102,13 +125,27 @@ function HelpModal({ onClose }) {
 
 export default function App() {
   const [health, setHealth] = useState(null);
-  const [modulo, setModulo] = useState(() => {
-    try { return localStorage.getItem("modulo") || "indisp"; } catch { return "indisp"; }
+  // Entrada: «#/» abre siempre Monitores (enlace para Presidencia); si no, el último
+  // módulo usado, y sin módulo guardado, Monitores.
+  const [modulo, setModuloState] = useState(() => {
+    if (location.hash === "#/") return "monitores";
+    try { return localStorage.getItem("modulo") || "monitores"; } catch { return "monitores"; }
   });
+  const setModulo = useCallback((m) => {
+    setModuloState(m);
+    const hash = m === "monitores" ? "#/" : "";
+    if (location.hash !== hash) history.replaceState(null, "", hash || location.pathname + location.search);
+  }, []);
   const [help, setHelp] = useState(false);
 
   useEffect(() => {
     api.health().then(setHealth).catch(() => setHealth({ oracle: "desconocido" }));
+  }, []);
+
+  useEffect(() => {
+    const onHash = () => { if (location.hash === "#/") setModuloState("monitores"); };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
   useEffect(() => {
@@ -126,12 +163,13 @@ export default function App() {
     openHelp: () => setHelp(true),
     railOpen, toggleRail: () => setRailOpen((o) => !o),
     queryOpen, toggleQuery: () => setQueryOpen((o) => !o),
-  }), [modulo, health, railOpen, queryOpen, setRailOpen, setQueryOpen]);
+  }), [modulo, setModulo, health, railOpen, queryOpen, setRailOpen, setQueryOpen]);
 
   return (
     <ShellContext.Provider value={shell}>
       <div className="app">
         {/* Los módulos permanecen montados para preservar su estado al alternar. */}
+        <div className={`modwrap ${modulo === "monitores" ? "" : "modwrap--hidden"}`}><MonitoresModule /></div>
         <div className={`modwrap ${modulo === "indisp" ? "" : "modwrap--hidden"}`}><IndispModule /></div>
         <div className={`modwrap ${modulo === "smec" ? "" : "modwrap--hidden"}`}><SmecModule /></div>
         <div className={`modwrap ${modulo === "sisfalla" ? "" : "modwrap--hidden"}`}><SisfallaModule /></div>

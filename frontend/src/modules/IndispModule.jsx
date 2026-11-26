@@ -4,6 +4,8 @@ import { REPORTS } from "../reports";
 import Tree from "../components/Tree";
 import OptionsPanel from "../components/OptionsPanel";
 import ResultsTable from "../components/ResultsTable";
+import Chart from "../components/Chart";
+import { seriesDeResultado } from "../chartData";
 import DatePresets from "../components/DatePresets";
 import { collectIds, allKeys, toggleNode, countLeaves } from "../treeUtils";
 import { isoDaysAgo } from "../dateUtils";
@@ -43,6 +45,26 @@ export default function IndispModule() {
   const [showTotals, setShowTotals] = useState(false);
   const [generadoEn, setGeneradoEn] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [vista, setVista] = useState("tabla");
+  // Zonas térmicas para la consulta de temperaturas: se piden una vez, al necesitarlas.
+  const [zonas, setZonas] = useState(null);
+  const usaZonas = activeReport.options?.some((o) => o.source === "zonas");
+  useEffect(() => {
+    if (!usaZonas || zonas) return;
+    api.zonasTermicas()
+      .then((z) => {
+        setZonas(z);
+        // Por defecto todas marcadas (null = aún sin elegir).
+        setOptState((s) => (s["temperatura-consulta"].zonas ? s
+          : { ...s, "temperatura-consulta": { ...s["temperatura-consulta"], zonas: z.map((x) => x.id) } }));
+      })
+      .catch((e) => setError(`No se pudieron cargar las zonas térmicas: ${e.message}`));
+  }, [usaZonas, zonas]);
+  const opciones = useMemo(() => (activeReport.options || []).map((o) => (o.source === "zonas"
+    ? { ...o, options: (zonas || []).map((z) => ({ value: z.id, label: z.zona, title: z.unidades.join(", ") })) }
+    : o)), [activeReport, zonas]);
+  const chartData = useMemo(() => (activeReport.grafico ? seriesDeResultado(result) : null),
+    [result, activeReport]);
 
   const cargarArbol = useCallback(async () => {
     setTreeLoading(true);
@@ -84,7 +106,7 @@ export default function IndispModule() {
 
   const buildBody = () => {
     const body = activeReport.buildBody({ fechaInicio, fechaFin }, optState[activeReport.id], getIds);
-    if (!body.unidades || body.unidades.length === 0)
+    if (!activeReport.sinArbol && (!body.unidades || body.unidades.length === 0))
       throw new Error("Seleccione al menos un componente en el árbol.");
     return body;
   };
@@ -114,8 +136,10 @@ export default function IndispModule() {
     } catch (e) { setError(`No se pudo copiar: ${e.message}`); }
   };
 
-  const puedeGenerar = !treeLoading && seleccionados > 0;
-  const estadoSeleccion = `${seleccionados} componente(s) seleccionado(s)`;
+  // sinArbol: el reporte es de todo el SIN y no usa la selección del árbol.
+  const sinArbol = !!activeReport.sinArbol;
+  const puedeGenerar = sinArbol || (!treeLoading && seleccionados > 0);
+  const estadoSeleccion = sinArbol ? "Todo el SIN: sin selección requerida" : `${seleccionados} componente(s) seleccionado(s)`;
 
   const pick = (id) => { setActiveId(id); setResult(null); setError(null); };
   const rango = `${fechaCorta(fechaInicio)} al ${fechaCorta(fechaFin)}`;
@@ -127,7 +151,7 @@ export default function IndispModule() {
       <QueryPanel
         title={`${activeReport.grupo} › ${activeReport.label}`}
         desc={<p>{activeReport.descripcion}</p>}
-        resumen={`${rango}, ${seleccionados} componente(s)`}
+        resumen={sinArbol ? rango : `${rango}, ${seleccionados} componente(s)`}
         estado={estadoSeleccion} listo={puedeGenerar}
         onGenerar={generar} running={running} puedeGenerar={puedeGenerar}
         footer={<>
@@ -136,7 +160,7 @@ export default function IndispModule() {
             title={!puedeGenerar ? "Seleccione al menos un componente para generar el reporte." : undefined}>
             {running ? "Generando…" : "Generar reporte"}</button>
           <button className="btn" onClick={exportar}
-            disabled={exporting || treeLoading || seleccionados === 0}>
+            disabled={exporting || !puedeGenerar}>
             {exporting ? "Exportando…" : "Exportar a Excel"}</button>
         </>}>
         <QSec title="Fechas">
@@ -151,12 +175,12 @@ export default function IndispModule() {
 
         {activeReport.options && activeReport.options.length > 0 && (
           <QSec title="Opciones">
-            <OptionsPanel options={activeReport.options} values={optState[activeReport.id]}
+            <OptionsPanel options={opciones} values={optState[activeReport.id]}
               onChange={(v) => setOptState((s) => ({ ...s, [activeReport.id]: v }))} />
           </QSec>
         )}
 
-        <QSec title="Componentes" className="qsec--tree"
+        {!sinArbol && <QSec title="Componentes" className="qsec--tree"
           aside={<span className="qsec-count">{seleccionados} seleccionado(s)</span>}>
           <div className="tree-tools">
             <input className="tree-search" type="search" aria-label="Buscar componente" placeholder="Buscar componente…" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
@@ -174,17 +198,31 @@ export default function IndispModule() {
             : <div className={`tree-wrap ${treeLoading ? "tree-wrap--refreshing" : ""}`}>
                 <Tree nodes={visibleTree} checked={checked} onToggle={onToggle} filter={filtro} collapsed />
               </div>}
-        </QSec>
+        </QSec>}
       </QueryPanel>
 
       <main className="content">
         {error && <div className="error-box" role="alert">{error}</div>}
         {result && result.aviso && <div className="warn-box">⚠ {result.aviso}</div>}
         <ResultBar result={result} generadoEn={generadoEn}
-          showTotals={showTotals} setShowTotals={setShowTotals} copied={copied} onCopiar={copiar} />
-        <ResultsTable result={result} loading={running} showTotals={showTotals}
-          placeholder="Marque componentes en el árbol y pulse «Generar reporte»."
-          emptyHint="Sin datos para el rango/selección. Verifique el rango de fechas y los componentes marcados." />
+          showTotals={showTotals} setShowTotals={setShowTotals} copied={copied} onCopiar={copiar}>
+          {chartData && (
+            <span className="vista-toggle">
+              <button type="button" aria-pressed={vista === "tabla"}
+                className={`seg ${vista === "tabla" ? "seg--on" : ""}`}
+                onClick={() => setVista("tabla")}>Tabla</button>
+              <button type="button" aria-pressed={vista === "grafico"}
+                className={`seg ${vista === "grafico" ? "seg--on" : ""}`}
+                onClick={() => setVista("grafico")}>Gráfico</button>
+            </span>
+          )}
+        </ResultBar>
+        {vista === "grafico" && chartData && !running ? (
+          <Chart series={chartData.series} labels={chartData.labels}
+            unit={activeReport.unidad} omitidas={chartData.omitidas} />
+        ) : <ResultsTable result={result} loading={running} showTotals={showTotals}
+          placeholder={sinArbol ? "Elija las fechas y pulse «Generar reporte»." : "Marque componentes en el árbol y pulse «Generar reporte»."}
+          emptyHint="Sin datos para el rango/selección. Verifique el rango de fechas y los componentes marcados." />}
       </main>
     </div>
   );

@@ -1,0 +1,68 @@
+{
+  "_nota": "Configuración del tablero «Monitores». Se edita sin tocar código: el backend la relee si cambia. Ruta alternativa: variable TABLERO_CONFIG.",
+  "niveles_dato": [
+    {"id": "smec", "rotulo": "SMEC oficial", "es_oficial": true,
+     "descripcion": "Sistema de Medición Comercial: medidores de los agentes, 15 min."},
+    {"id": "hfd", "rotulo": "HFD operativo", "es_oficial": false,
+     "descripcion": "Historical File Data del SCADA, cargado por rs7 cada ~10 min. No reemplaza a SMEC."},
+    {"id": "evento", "rotulo": "Registro de eventos", "es_oficial": true,
+     "descripcion": "Eventos de operación (dc_eventos) y Sistema de Fallas."}
+  ],
+  "dominios": [
+    {"id": "sin", "nombre": "SIN", "modulo": "smec"},
+    {"id": "operacion", "nombre": "Reporte de la Operación", "modulo": "indisp"},
+    {"id": "fallas", "nombre": "Sistema de Fallas", "modulo": "sisfalla"}
+  ],
+  "indicadores": [
+    {"id": "SIN-01", "dominio_id": "sin", "nombre": "Potencia de punta",
+     "descripcion": "Máximo de los retiros totales del SIN en un intervalo de 15 minutos, medido por SMEC. Es la cifra que el CNDC publica como Potencia de Punta.",
+     "unidad": "MW", "decimales": 0, "direccion": "up", "comparar": "relativa",
+     "nivel_dato_id": "smec", "metrica": "smec_potencia_punta", "maximo_historico": true,
+     "fuente": "SMEC · sm_potencia_cen_intervalo, retiros"},
+    {"id": "SIN-02", "dominio_id": "sin", "nombre": "Demanda de energía",
+     "descripcion": "Energía total retirada del SIN, medida por SMEC. Es la cifra que el CNDC publica como Demanda de Energía.",
+     "unidad": "GWh", "decimales": 1, "direccion": "up", "comparar": "relativa",
+     "nivel_dato_id": "smec", "metrica": "smec_demanda_energia",
+     "fuente": "SMEC · sm_energia_cen_dia, retiros"},
+    {"id": "OP-01", "dominio_id": "operacion", "nombre": "Disponibilidad del parque generador",
+     "descripcion": "Horas disponibles de las unidades, ponderadas por la potencia efectiva oficial vigente cada día. Cuenta la Indisponibilidad Programada y la Forzada.",
+     "unidad": "%", "decimales": 2, "direccion": "up", "comparar": "puntos",
+     "nivel_dato_id": "evento", "metrica": "op_disponibilidad",
+     "fuente": "Registro de eventos: Indisponibilidad Programada y Forzada + potencia efectiva oficial (Excel semestral CNDC)"},
+    {"id": "OP-03F", "dominio_id": "operacion", "nombre": "Horas indisponibles forzadas",
+     "descripcion": "Suma de horas en Indisponibilidad Forzada de las unidades de la tabla de potencia efectiva.",
+     "unidad": "h", "decimales": 0, "direccion": "down", "comparar": "relativa",
+     "nivel_dato_id": "evento", "metrica": "op_horas", "parametros": {"tipo": 156},
+     "fuente": "Registro de eventos: Indisponibilidad Forzada"},
+    {"id": "OP-03P", "dominio_id": "operacion", "nombre": "Horas indisponibles programadas",
+     "descripcion": "Suma de horas en Indisponibilidad Programada de las unidades de la tabla de potencia efectiva.",
+     "unidad": "h", "decimales": 0, "direccion": "down", "comparar": "relativa",
+     "nivel_dato_id": "evento", "metrica": "op_horas", "parametros": {"tipo": 155},
+     "fuente": "Registro de eventos: Indisponibilidad Programada"},
+    {"id": "RF-01", "dominio_id": "fallas", "nombre": "Energía no suministrada",
+     "descripcion": "ENS de las desconexiones de alimentadores, sólo de fallas con informe CNDC FINAL o RECTIFICATORIO.",
+     "unidad": "MWh", "decimales": 1, "direccion": "down", "comparar": "relativa",
+     "nivel_dato_id": "evento", "metrica": "fallas_ens",
+     "fuente": "Sistema de Fallas · F_GF_OP_ALIMENTADOR (informe CNDC FINAL)"},
+    {"id": "RF-02", "dominio_id": "fallas", "nombre": "Fallas con informe FINAL",
+     "descripcion": "Fallas iniciadas en el periodo cuyo informe CNDC FINAL o RECTIFICATORIO ya fue emitido.",
+     "unidad": "fallas", "decimales": 0, "direccion": "down", "comparar": "relativa",
+     "nivel_dato_id": "evento", "metrica": "fallas_conteo",
+     "fuente": "Sistema de Fallas · F_GF_REGFALLA + F_GF_INFORMEFALLA"}
+  ],
+  "umbrales": [],
+  "inicio": {
+    "monitores": [
+      {"dominio_id": "sin", "principal": "SIN-01", "secundarios": ["SIN-02"]},
+      {"dominio_id": "operacion", "principal": "OP-01", "secundarios": ["OP-03F", "OP-03P"]},
+      {"dominio_id": "fallas", "principal": "RF-01", "secundarios": ["RF-02"]}
+    ],
+    "meses_tendencia": 12
+  },
+  "limites": {
+    "hfd_congelada_lecturas": 8,
+    "hfd_atrasado_min": 30,
+    "smec_atrasado_dias": 2,
+    "pef_aviso_dias": 30
+  }
+}

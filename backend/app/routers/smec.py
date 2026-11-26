@@ -26,7 +26,8 @@ _TITULOS = {
     "factor_periodo": "Factor de carga - Rango",
     "capacidad_sistema": "Capacidad efectiva - Por sistema",
     "mix_tecnologia": "Capacidad efectiva - Por tecnología",
-    "pico_sin": "Pico del SIN por día",
+    "pico_sin": "Potencia de punta del SIN por día (inyección)",
+    "generacion_demanda": "Generación vs demanda",
     "conciliacion": "Conciliación inyección-retiro",
     "potencia_limitada": "Potencia limitada",
 }
@@ -80,6 +81,8 @@ def _despachar(req: SmecReporteRequest):
         return capacidad.mix_tecnologia(f1, f2, ids, d)
     if t == "pico_sin":
         return sistema.pico_sin(f1, f2, ids, req.porcentaje)
+    if t == "generacion_demanda":
+        return sistema.generacion_demanda(f1)
     if t == "conciliacion":
         return sistema.conciliacion(f1, f2)
     if t == "potencia_limitada":
@@ -95,7 +98,7 @@ def _validar(req: SmecReporteRequest):
         raise HTTPException(status_code=400, detail="comparar debe ser 'ninguno', 'semana' o 'anio'.")
     if req.tipo == "pico_sin" and req.fecha_fin and (req.fecha_fin - req.fecha_inicio).days > 366:
         # Una consulta a Oracle por día.
-        raise HTTPException(status_code=400, detail="El pico del SIN admite hasta 366 días.")
+        raise HTTPException(status_code=400, detail="La potencia de punta del SIN admite hasta 366 días.")
     if req.comparar == "semana" and req.tipo != "energia_dia":
         raise HTTPException(status_code=400,
                             detail="Comparar con la semana anterior sólo aplica a energia_dia.")

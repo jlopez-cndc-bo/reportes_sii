@@ -4,6 +4,7 @@ import Tree from "../components/Tree";
 import ResultsTable from "../components/ResultsTable";
 import DatePresets from "../components/DatePresets";
 import Chart from "../components/Chart";
+import { seriesDeResultado } from "../chartData";
 import { collectIds, allKeys, toggleNode } from "../treeUtils";
 import { isoDaysAgo as iso } from "../dateUtils";
 import { copyResultTsv } from "../copyTsv";
@@ -55,8 +56,11 @@ const SMEC_REPORTS = [
     ] },
   // SIN completo: el total no depende del árbol. arbolOpcional = el árbol sólo
   // elige qué centrales se desglosan; sinArbol = no se usa.
+  { grupo: "SIN", id: "generacion_demanda", label: "Generación vs demanda",
+    descripcion: "Curva de un día cada 15 minutos: generación (inyección) frente a demanda (retiros) del SIN y su diferencia. El máximo de la demanda es la potencia de punta del día.",
+    interval: false, fin: false, sinArbol: true, unidad: "kW" },
   { grupo: "SIN", id: "pico_sin", descripcion: "Para cada día, el intervalo de 15 minutos con la mayor inyección del SIN y el aporte de cada central.",
-    label: "Pico diario", interval: false, fin: true, unidad: "kW",
+    label: "Potencia de punta (inyección)", interval: false, fin: true, unidad: "kW",
     soloIny: true, arbolOpcional: true },
   { grupo: "SIN", id: "conciliacion", descripcion: "Inyección menos retiro de cada día: pérdidas y desbalance de medición.",
     label: "Conciliación", interval: false, fin: true,
@@ -70,7 +74,7 @@ const SMEC_REPORTS = [
 const TIPOS = SMEC_REPORTS.flatMap((e) => (e.variantes || [{}])
   .map((v) => ({ ...e, ...v, label: e.label, variante: v.label, entrada: e })));
 const GRUPOS = ["Mediciones", "Índices", "SIN"];
-// Más columnas que esto en el pico diario hace la tabla difícil de leer.
+// Más columnas que esto en la potencia de punta hace la tabla difícil de leer.
 const PICO_COLS_AVISO = 10;
 
 // "Comparar con" de Energía: la semana anterior sólo tiene sentido en Día.
@@ -82,7 +86,7 @@ const opcionesComparar = (id) => COMPARAR.filter(([k]) => k !== "semana" || id =
 // Reportes con serie temporal graficable (X = intervalos/días/meses/años).
 const GRAFICABLES = new Set([
   "potencia_15min", "potencia_hora", "potencia_max_diario",
-  "energia_dia", "energia_mes", "energia_anio",
+  "energia_dia", "energia_mes", "energia_anio", "generacion_demanda",
 ]);
 
 export default function SmecModule() {
@@ -214,33 +218,12 @@ export default function SmecModule() {
   const puedeGenerar = !treeLoading && (idsSel.length > 0 || !requiereSeleccion);
   // Textos del SIN: el modo (kW / %) es el de la consulta generada, no el del selector.
   const descSin = (pct) => (report.id === "pico_sin"
-    ? `Todo el SIN (inyección), valores en ${pct ? "% del pico" : "kW"}` : `Todo el SIN, valores en ${unidad}`);
+    ? `Todo el SIN (inyección), valores en ${pct ? "% de la punta" : "kW"}` : `Todo el SIN, valores en ${unidad}`);
   const estadoSin = report.sinArbol ? "Sin selección requerida"
     : idsSel.length ? `${idsSel.length} central(es) a desglosar` : "Solo total del SIN";
 
-  // Series para el gráfico: columnas numéricas como eje X, una serie por
-  // fila (en drill sólo los agentes). Se grafican hasta 8 (las de mayor
-  // magnitud), manteniendo el orden original para que el color siga a la
-  // entidad y no a su rango.
-  const chartData = useMemo(() => {
-    if (!result || !GRAFICABLES.has(report.id) || result.rows.length === 0) return null;
-    // "resumen": Total/Máx/Mín/Promedio no son un período del eje X.
-    const numCols = result.columns.filter((c) => c.format && c.format !== "datetime" && !c.hidden && !c.resumen);
-    if (numCols.length < 2) return null;
-    const textKeys = result.columns.filter((c) => !c.format && !c.resumen).map((c) => c.key);
-    let rows = result.rows;
-    if (rows[0]?._nivel !== undefined) rows = rows.filter((r) => r._nivel === 0);
-    const todas = rows.map((r, i) => ({
-      i,
-      name: textKeys.map((k) => r[k]).filter(Boolean).join(" · ") || `fila ${i + 1}`,
-      values: numCols.map((c) => (typeof r[c.key] === "number" ? r[c.key] : null)),
-    }));
-    const score = (s) => Math.max(0, ...s.values.map((v) => Math.abs(v ?? 0)));
-    const top = [...todas].sort((a, b) => score(b) - score(a)).slice(0, 8)
-      .sort((a, b) => a.i - b.i);
-    return { series: top, omitidas: todas.length - top.length,
-             labels: numCols.map((c) => c.label) };
-  }, [result, report.id]);
+  const chartData = useMemo(() => (GRAFICABLES.has(report.id) ? seriesDeResultado(result) : null),
+    [result, report.id]);
 
   const pick = (id) => {
     setTipo(id); setResult(null); setError(null);
@@ -313,7 +296,7 @@ export default function SmecModule() {
               <div className="opt-group">
                 <span className="opt-title">Mostrar</span>
                 <div className="opt-radios">
-                  {[[false, "kW"], [true, "% del pico"]].map(([v, lbl]) => (
+                  {[[false, "kW"], [true, "% de la punta"]].map(([v, lbl]) => (
                     <button key={lbl} type="button" aria-pressed={picoPct === v}
                       className={`seg ${picoPct === v ? "seg--on" : ""}`} onClick={() => setPicoPct(v)}>{lbl}</button>
                   ))}

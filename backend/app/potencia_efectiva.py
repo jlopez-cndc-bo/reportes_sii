@@ -178,3 +178,17 @@ def efectiva(codigo: str, dia: date) -> float | None:
     """Potencia efectiva vigente para la unidad ese día, o None si no hay dato."""
     vig = vigencia(dia)
     return EFECTIVA[vig[0]].get(codigo) if vig else None
+
+
+def efectiva_proxima(codigo: str, dia: date) -> float | None:
+    """Potencia efectiva de la vigencia que rige el día o, si ninguna rige, de la más próxima.
+
+    Para valores que cambian poco (hidro, eólica, solar…) cuando se necesita una referencia aun
+    fuera de las vigencias cargadas; los cálculos oficiales siguen usando `efectiva`.
+    """
+    vig = vigencia(dia)
+    if vig:
+        return EFECTIVA[vig[0]].get(codigo)
+    inicios = sorted(EFECTIVA)
+    cercana = min(inicios, key=lambda v: abs((v - dia).days) if dia < v else abs((dia - _FIN_ULTIMA).days))
+    return EFECTIVA[cercana].get(codigo)

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { formatNumber } from "../numFormat";
 
 // Gráfico de líneas SVG sin dependencias, para series temporales SMEC
@@ -10,7 +10,8 @@ export const CHART_COLORS = [
   "#4a3aa7", "#e34948", "#e87ba4", "#eb6834",
 ];
 
-const W = 920, H = 340;
+// El ancho del viewBox sigue al ancho real (texto a 11 px reales en cualquier columna).
+const H = 340;
 const M = { top: 16, right: 110, bottom: 30, left: 70 };
 const INK_MUTED = "#898781", GRID = "#e1e0d9", BASELINE = "#c3c2b7";
 
@@ -31,6 +32,14 @@ const nf = new Intl.NumberFormat("es-BO", { maximumFractionDigits: 1 });
 export default function Chart({ series, labels, unit, omitidas }) {
   const [hover, setHover] = useState(null);
   const svgRef = useRef(null);
+  const [W, setW] = useState(920);
+  const ro = useRef(null);
+  const wrapRef = useCallback((el) => {
+    ro.current?.disconnect();
+    if (!el) return;
+    ro.current = new ResizeObserver(([e]) => setW(Math.max(320, Math.round(e.contentRect.width))));
+    ro.current.observe(el);
+  }, []);
 
   const nums = series.flatMap((s) => s.values.filter((v) => typeof v === "number"));
   if (nums.length === 0) {
@@ -80,10 +89,10 @@ export default function Chart({ series, labels, unit, omitidas }) {
   const maxTxt = tip ? Math.max(0, ...tip.map((t) => t.txt.length)) : 0;
   const tipW = Math.max(230, 170 + Math.ceil(maxTxt * 6.5)), tipH = tip ? 20 + tip.length * 16 : 0;
   const tipX = hover !== null && x(hover) + 12 + tipW > W - M.right + 100
-    ? x(hover) - tipW - 12 : (hover !== null ? x(hover) + 12 : 0);
+    ? Math.max(0, x(hover) - tipW - 12) : (hover !== null ? x(hover) + 12 : 0);
 
   return (
-    <div className="chart-wrap">
+    <div className="chart-wrap" ref={wrapRef}>
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="chart-svg" role="img"
         aria-label={`Gráfico de líneas (${unit})`}
         onMouseMove={onMove} onMouseLeave={() => setHover(null)}>

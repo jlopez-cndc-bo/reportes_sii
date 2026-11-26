@@ -7,14 +7,21 @@ from ..reports import (
     horas_disponibilidad,
     horas_no_disponibilidad,
     horas_tipo_operacion,
+    indices,
+    potencia_temperatura,
     programacion,
+    temperatura,
 )
 from ..schemas import (
     HorasDisponibilidadRequest,
     HorasNoDisponibilidadRequest,
     HorasTipoOperacionRequest,
+    IndicesRequest,
+    PotenciaTemperaturaRequest,
     ProgramacionRequest,
     ReportResponse,
+    TemperaturaConsultaRequest,
+    TemperaturaRequest,
     TiposOperacionFlags,
     TreeRequest,
 )
@@ -174,3 +181,64 @@ def rpt_horas_tipo_operacion(req: HorasTipoOperacionRequest):
         req.periodo, req.modo, req.fecha_inicio, req.fecha_fin,
         req.unidades, _tipos(req.tipos_operacion),
     )
+
+
+@router.post(
+    "/reportes/punta-temperatura",
+    response_model=ReportResponse,
+    summary="Potencia de punta diaria y temperatura de cada zona en esa hora",
+    description="Por día: potencia de punta del SIN (retiros SMEC, MW), su hora y la temperatura de cada "
+                "zona térmica en esa hora; el aviso trae la correlación entre la temperatura máxima "
+                "del día y la punta. Rango máximo: 366 días.",
+)
+def rpt_punta_temperatura(req: TemperaturaRequest):
+    _validar(req.fecha_inicio, req.fecha_fin)
+    return _guard(_temp, temperatura.punta_temperatura, req.fecha_inicio, req.fecha_fin)
+
+
+def _temp(fn, f1, f2, *args):
+    temperatura.validar_rango(f1, f2)
+    return fn(f1, f2, *args)
+
+
+@router.get("/reportes/zonas-termicas", summary="Zonas térmicas activas con sus unidades térmicas")
+def zonas_termicas():
+    return _guard(temperatura.zonas)
+
+
+@router.post(
+    "/reportes/temperatura-consulta",
+    response_model=ReportResponse,
+    summary="Temperatura horaria por zona térmica",
+    description="Horas 00:00 a 23:00 en columnas; una fila por fecha y zona, agrupadas por fecha, con "
+                "máxima (y su hora), mínima y promedio del día. Rango máximo: 366 días.",
+)
+def rpt_temperatura_consulta(req: TemperaturaConsultaRequest):
+    _validar(req.fecha_inicio, req.fecha_fin)
+    return _guard(temperatura.consulta, req.fecha_inicio, req.fecha_fin, req.zonas)
+
+
+@router.post(
+    "/reportes/indices",
+    response_model=ReportResponse,
+    summary="Índices de desempeño de generadores: FOR, EFOR y EFORd",
+    description="Por unidad, con las variables (SH, RSH, FOH, horas indisponibles en reserva, salidas "
+                "forzadas, arranques intentados y exitosos) sacadas de dc_eventos. Fórmulas del documento "
+                "de Operaciones del 24/11/2026; causas de clasificación en app/reports/indices.json.",
+)
+def rpt_indices(req: IndicesRequest):
+    _validar(req.fecha_inicio, req.fecha_fin, indices.MAX_DIAS)
+    return _guard(indices.reporte, req.fecha_inicio, req.fecha_fin, req.unidades)
+
+
+@router.post(
+    "/reportes/potencia-temperatura",
+    response_model=ReportResponse,
+    summary="Potencia efectiva de las térmicas a la temperatura real, por hora",
+    description="Curva potencia–temperatura vigente (POSTDES.GAS) evaluada en la temperatura horaria de la "
+                "zona de cada unidad, frente a la potencia efectiva del Excel; con `smec`, lo medido por el "
+                "medidor propio y el margen. Por unidad o por zona; hasta 31 días.",
+)
+def rpt_potencia_temperatura(req: PotenciaTemperaturaRequest):
+    _validar(req.fecha_inicio, req.fecha_fin)
+    return _guard(potencia_temperatura.reporte, req.fecha_inicio, req.fecha_fin, req.nivel, req.smec)
