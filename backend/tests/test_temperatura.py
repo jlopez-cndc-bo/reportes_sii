@@ -73,5 +73,5 @@ def test_efectiva_proxima_fuera_de_vigencia():
     from datetime import date
 
     from app.potencia_efectiva import efectiva, efectiva_proxima
-    assert efectiva("GCH11", date(2025, 6, 1)) is None
-    assert efectiva_proxima("GCH11", date(2025, 6, 1)) == efectiva("GCH11", date(2026, 11, 10))
+    assert efectiva("GCH11", date(2019, 6, 1)) is None
+    assert efectiva_proxima("GCH11", date(2019, 6, 1)) == efectiva("GCH11", date(2020, 11, 10))

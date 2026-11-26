@@ -1,8 +1,10 @@
 """Potencia efectiva oficial por unidad (MW) y su central, del archivo semestral del CNDC.
 
-No está en Oracle: se carga a mano desde «Potencia efectiva <semestre>»
-(hoy 01_Nov26_Abr27.xlsx, hoja PotenciaEfectiva). La usan SMEC (Potencia
-limitada) y Reporte de la Operación (% por central, MW indisponibles).
+No está en Oracle: sale de los Excel semestrales «Potencia efectiva <semestre>»
+(hoja PotenciaEfectiva), de nov-2020 en adelante, generados a potencia_efectiva.json
+con tools/cargar_potencia_efectiva.py. Cada revisión rige desde su fecha (la primera
+de cada semestre, desde el inicio del semestre). La usan SMEC (Potencia limitada) y
+Reporte de la Operación (% por central, MW indisponibles).
 
 - Térmicas a temperatura media. Ciclos combinados con su valor CC
   (WARxy→CCWARxy, ERIxy→CCERIxy, SURxy→CCSURxy, GCH09/10→GCHxxCOM; las x0 son
@@ -14,87 +16,26 @@ limitada) y Reporte de la Operación (% por central, MW indisponibles).
 - Equivalencias nombre del archivo → código validadas por el usuario 2026-11-23.
 - La central sale del archivo, no de OBJETOS_OBJETOS (jerarquía de red no confiable).
 
-shortcut: tabla a mano por semestre; actualizar cada noviembre y mayo con el
-archivo nuevo (agregar una vigencia, no pisar la anterior). A futuro: Quantum.
+shortcut: Excel por semestre; cada noviembre y mayo agregar el archivo nuevo a la
+carpeta, correr el script y subir FIN_ULTIMA. A futuro: Quantum.
 """
+import json
 from datetime import date, timedelta
-
-
-def _iguales(codigos: list[str], mw_central: float) -> dict[str, float]:
-    """Reparte la potencia de una central entre unidades iguales."""
-    return {c: round(mw_central / len(codigos), 4) for c in codigos}
+from pathlib import Path
 
 
 def _serie(prefijo: str, desde: int, hasta: int) -> list[str]:
     return [f"{prefijo}{i:02d}" for i in range(desde, hasta + 1)]
 
 
+_DATOS = json.loads(Path(__file__).with_name("potencia_efectiva.json").read_text(encoding="utf-8"))
 EFECTIVA: dict[date, dict[str, float]] = {
-    date(2026, 11, 1): {
-        # ── Termoeléctricas (temperatura media) ──
-        "GCH01": 18.62, "GCH02": 17.62, "GCH04": 19.95, "GCH06": 20.71, "GCH11": 62.22,
-        "GCH09": 102.03, "GCH10": 100.97,
-        "GCH09COM": 102.03, "GCH10COM": 100.97, "GCH0910COM": 206.83,
-        "SCZ01": 20.76, "SCZ02": 21.19,
-        "VHE02": 18.81, "VHE03": 18.32, "VHE05": 10.58, "VHE06": 10.58, "VHE07": 10.58, "VHE08": 10.58,
-        "ARJ01": 2.7, "ARJ02": 2.24, "ARJ03": 2.62, "ARJ08": 18.39, "ARJ09": 1.49, "ARJ11": 1.49,
-        "ARJ12": 1.6, "ARJ13": 1.55, "ARJ14": 1.51, "ARJ15": 1.6,
-        "CAR01": 53.65, "CAR02": 55.39, "CAR03": 24.32,
-        "ALT01": 18.33, "ALT02": 31.62,
-        "BUL01": 43.97, "BUL03": 48.82,
-        "ERI01": 28.72, "ERI02": 28.04, "ERI03": 29.13, "ERI04": 28.44,
-        "ERI30": 137.42, "ERI31": 68.22, "ERI32": 67.36, "ERI40": 137.56, "ERI41": 67.73,
-        "ERI42": 67.56, "ERI50": 137.46, "ERI51": 67.68, "ERI52": 67.46,
-        "SUR10": 122.84, "SUR11": 58.31, "SUR12": 58.3, "SUR20": 122.44, "SUR21": 58.44,
-        "SUR22": 58.37, "SUR30": 129.05, "SUR31": 63.39, "SUR32": 63.3, "SUR40": 131.5,
-        "SUR41": 63.46, "SUR42": 64.36,
-        "WAR05": 44.33,
-        "WAR10": 128.35, "WAR11": 64.0, "WAR12": 63.73, "WAR20": 127.5, "WAR21": 64.04,
-        "WAR22": 62.91, "WAR30": 135.36, "WAR31": 66.74, "WAR32": 67.09, "WAR40": 135.03,
-        "WAR41": 65.8, "WAR42": 66.52,
-        "MOA02": 1.28, "MOA05": 1.1, "MOA06": 1.12, "MOA07": 1.1, "MOA08": 1.1,
-        # ── Bagazo (una unidad equivalente por central) ──
-        "GBE01": 21.0, "IAG01": 5.0, "UNA01": 35.0, "AGU01": 4.0, "AGU02": 55.0,
-        "AGU03": 52.09, "SBU01": 5.0,
-        # ── Hidroeléctricas (54 unidades) ──
-        "MIG01": 1.31, "MIG02": 1.24,
-        "ANG01": 2.22, "ANG02": 1.27, "ANG03": 2.74,
-        "CHO01": 1.91, "CHO02": 2.45, "CHO03": 1.84,
-        "CRB": 6.13,
-        "ZON": 11.04, "TIQ": 9.72,
-        "BOT01": 1.9, "BOT02": 1.47, "BOT03": 3.44,
-        "CUT01": 2.5, "CUT02": 2.38, "CUT03": 2.3, "CUT04": 1.49, "CUT05": 14.3,
-        "SRO01": 6.9, "SRO02": 10.69,
-        "SAI": 10.5,
-        "CHU01": 13.18, "CHU02": 12.21,
-        "HAR01": 13.53, "HAR02": 12.32,
-        "CAH01": 13.653, "CAH02": 14.364,
-        "HUA01": 15.1, "HUA02": 15.05,
-        "CHJ": 38.4, "YAN": 50.785,
-        "COR01": 12.91, "COR02": 12.79, "COR03": 13.25, "COR04": 13.31, "COR05": 12.99,
-        "SIS01": 17.652, "SIS02": 16.923, "SIS03": 17.159, "SIS04": 17.722, "SIS05": 21.649,
-        "SJS01": 27.5, "SJS02": 27.5,
-        "SJE01": 34.5, "SJE02": 34.5,
-        "KAN": 7.54,
-        "QUE01": 0.979, "QUE02": 0.993,
-        "SJA01": 3.8, "SJA02": 3.8,
-        "MIS01": 40.0, "MIS02": 40.0, "MIS03": 40.0,
-        # ── Eólicas (MW de la central ÷ unidades) ──
-        **_iguales(["QOL01", "QOL02"], 3),                 # Qollpana I
-        **_iguales(_serie("QOL", 3, 10), 24),              # Qollpana II
-        **_iguales(_serie("EWA", 1, 4), 14.4),             # Warnes I
-        **_iguales(_serie("SJU", 1, 11), 39.6),            # San Julián
-        **_iguales(_serie("EDO", 1, 15), 54),              # El Dorado
-        # ── Solares fotovoltaicas (MW de la central ÷ unidades) ──
-        **_iguales(_serie("ORU", 1, 19), 50.01),           # Oruro Fase 1
-        **_iguales(_serie("ORU", 20, 38), 50.01),          # Oruro Fase 2
-        **_iguales(["YUN01", "YUN02"], 5),                 # Yunchará
-        **_iguales(_serie("UYU", 1, 21), 60.06),           # Uyuni
-        "UYU22": 2.5,                                      # Uyuni Fase 2
-    },
-}
+    date.fromisoformat(d): v["mw"] for d, v in _DATOS["vigencias"].items()}
 # Hasta cuándo rige la última vigencia cargada (fin del semestre del archivo).
-_FIN_ULTIMA = date(2027, 4, 30)
+_FIN_ULTIMA = date.fromisoformat(_DATOS["fin_ultima"])
+# Temperatura media (°C) de cada térmica en el primer archivo (nov-2020): con ella se evalúa la
+# curva de POSTDES.GAS en fechas sin Excel (ver reports.potencia_temperatura.efectiva_dia).
+T_MEDIA_INICIAL: dict[str, float] = _DATOS["t_media_inicial"]
 
 
 def _centrales(**grupos: list[str]) -> dict[str, str]:
@@ -186,9 +127,17 @@ def efectiva_proxima(codigo: str, dia: date) -> float | None:
     Para valores que cambian poco (hidro, eólica, solar…) cuando se necesita una referencia aun
     fuera de las vigencias cargadas; los cálculos oficiales siguen usando `efectiva`.
     """
+    return EFECTIVA[vigencia_proxima(dia)[0]].get(codigo)
+
+
+def vigencia_proxima(dia: date) -> tuple[date, date, bool]:
+    """(desde, hasta, oficial): la vigencia que rige el día o, si ninguna rige, la más próxima.
+
+    Las vigencias cargadas son contiguas, así que fuera de ellas la más próxima es la primera
+    (antes del inicio) o la última (después del fin). oficial=False → el reporte debe avisarlo.
+    """
     vig = vigencia(dia)
     if vig:
-        return EFECTIVA[vig[0]].get(codigo)
+        return (*vig, True)
     inicios = sorted(EFECTIVA)
-    cercana = min(inicios, key=lambda v: abs((v - dia).days) if dia < v else abs((dia - _FIN_ULTIMA).days))
-    return EFECTIVA[cercana].get(codigo)
+    return (*vigencia(inicios[0] if dia < inicios[0] else inicios[-1]), False)

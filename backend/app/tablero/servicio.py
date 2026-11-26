@@ -145,7 +145,7 @@ def alertas(hfd: dict | None, smec_ultimo, now: datetime, cfg: Config) -> list[d
     vig = vigencia(now.date())
     if vig is None:
         out.append({"nivel": "alta", "texto": "No hay potencia efectiva oficial vigente hoy: la "
-                                              "disponibilidad queda en «-». Cargar el archivo semestral."})
+                                              "disponibilidad usa una aproximación. Cargar el archivo semestral."})
     elif (vig[1] - now.date()).days <= lim.pef_aviso_dias:
         out.append({"nivel": "media", "texto": f"La potencia efectiva oficial vence el "
                                                f"{vig[1]:%d/%m/%Y}: cargar el archivo del semestre siguiente."})

@@ -14,7 +14,14 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 from ..db import query
-from ..potencia_efectiva import CENTRAL, central_de, efectiva_proxima
+from ..potencia_efectiva import (
+    CENTRAL,
+    T_MEDIA_INICIAL,
+    central_de,
+    efectiva,
+    efectiva_proxima,
+    vigencia,
+)
 from . import temperatura as TEMP
 
 # Código de la curva en GAS cuando no es el de la unidad (bloques CC y Guaracachi combinado).
@@ -80,6 +87,32 @@ def _curvas(dia: date, ius: list[str]) -> dict[str, list[tuple[float, float]]]:
         if f["p"] is not None:
             out.setdefault(f["iu"], []).append((float(f["t"]), float(f["p"])))
     return {k: v for k, v in out.items() if len({t for t, _ in v}) >= 2}
+
+
+def efectiva_dia(codigos: list[str], dia: date) -> tuple[dict[str, float | None], bool]:
+    """(potencia efectiva de cada unidad ese día, oficial).
+
+    Con vigencia oficial: el Excel (oficial=True). Sin ella (antes de nov-2020): las térmicas con
+    curva en POSTDES.GAS se evalúan a su temperatura media del primer archivo (verificado: el
+    01/11/2020 las 45 con curva dan el valor del Excel); el resto, la vigencia más próxima.
+    """
+    if vigencia(dia):
+        return {c: efectiva(c, dia) for c in codigos}, True
+    out = {c: efectiva_proxima(c, dia) for c in codigos}
+    termicas = [c for c in codigos if c in T_MEDIA_INICIAL]
+    if termicas:
+        term = _termicas(dia, sorted({c for cod in termicas for c in _codigo_curva(cod)}))
+        curvas = _curvas(dia, sorted({t["iu"] for t in term.values()}))
+        for cod in termicas:
+            for c in _codigo_curva(cod):
+                if c in term and term[c]["iu"] in curvas:
+                    out[cod] = round(interpolar(curvas[term[c]["iu"]], T_MEDIA_INICIAL[cod]), 2)
+                    break
+    return out, False
+
+
+NOTA_SIN_OFICIAL = ("Sin potencia efectiva oficial (Excel) para la fecha: las térmicas usan su curva "
+                    "de POSTDES.GAS a la temperatura media y el resto la vigencia más próxima.")
 
 
 def potencias_dia(dia: date) -> list[dict[str, Any]]:

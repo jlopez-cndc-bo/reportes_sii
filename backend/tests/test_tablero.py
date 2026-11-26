@@ -130,9 +130,17 @@ def test_disponibilidad_pondera_por_potencia_efectiva(monkeypatch):
     assert "1 estado(s) de ciclo combinado" in p["nota"]
 
 
-def test_disponibilidad_sin_potencia_efectiva_vigente_es_guion():
-    p = F.op_disponibilidad(Rango(datetime(2026, 10, 1), datetime(2026, 11, 1), ""), NOW)
-    assert p["valor"] is None and "01/10/2026" in p["nota"]
+def test_disponibilidad_sin_excel_usa_la_aproximacion_y_avisa(monkeypatch):
+    d = datetime(2019, 3, 10)
+    monkeypatch.setattr(F, "_eventos", lambda *a: [
+        {"cod": "GCH11", "tipo": F.FORZADA, "ini": d, "fin": d.replace(hour=12), "causa": ""}])
+    pedidos = []
+    monkeypatch.setattr(F, "efectiva_dia", lambda cods, dia: (
+        pedidos.append(dia) or ({c: (100.0 if c == "GCH11" else 0.0) for c in cods}, False)))
+    p = F.op_disponibilidad(Rango(d, d.replace(day=11), ""), NOW)
+    assert pedidos == [date(2019, 3, 1)]               # una vez por mes
+    assert p["valor"] == pytest.approx(50.0)           # GCH11 es todo el peso: 12 de 24 h
+    assert p["calidad"] == "parcial" and "POSTDES.GAS" in p["nota"]
 
 
 def test_indisponibles_dia_suma_por_tipo_sin_contar_doble(monkeypatch):

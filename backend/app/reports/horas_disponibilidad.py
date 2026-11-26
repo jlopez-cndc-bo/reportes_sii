@@ -8,8 +8,9 @@ from typing import Any
 
 from ..constants import TipoOperacion
 from ..db import query
-from ..potencia_efectiva import CENTRAL, central_de, efectiva, vigencia
+from ..potencia_efectiva import CENTRAL, central_de, vigencia_proxima
 from ..sqlutil import in_clause
+from .potencia_temperatura import NOTA_SIN_OFICIAL, efectiva_dia
 
 _SQL = """
 SELECT id_elemento,
@@ -74,7 +75,7 @@ def report_central(
     Toma las centrales de los generadores marcados según la tabla semestral
     (potencia_efectiva.CENTRAL, no la jerarquía de red) y considera TODAS sus
     unidades: las que no tuvieron eventos 155/156 cuentan 100 %. Pesos de la
-    vigencia que rige el día de inicio; sin vigencia cargada no se pondera.
+    vigencia que rige el día de inicio; sin Excel ese día, ver potencia_temperatura.efectiva_dia.
     """
     if not (ip or inf):
         raise ValueError("Marque Programada y/o Forzada.")
@@ -87,7 +88,7 @@ def report_central(
     fuera = sorted(c for c in codigos if not central_de(c))
 
     horas_periodo = ((f2.date() - f1.date()).days + 1) * 24
-    vig = vigencia(f1.date())
+    vig = vigencia_proxima(f1.date())
     columns = [
         {"key": "central", "label": "Central"},
         {"key": "unidades", "label": "Unidades", "format": "num"},
@@ -108,35 +109,35 @@ def report_central(
     horas = {r["codigo_objeto"]: r["hora_desconectadas"] or 0
              for r in report(f1, f2, ids, ip, inf)["rows"]}
 
+    pef, _ = efectiva_dia(unidades_central, f1.date())
     rows = []
     for central in centrales:
         cods = [c for c, cen in CENTRAL.items() if cen == central]
         h = sum(horas.get(c, 0) for c in cods)
-        pesos = {c: efectiva(c, f1.date()) for c in cods} if vig else {}
+        # Unidades que figuran en la vigencia: las que aún no existían (o ya salieron) no pesan.
+        pesos = {c: p for c in cods if (p := pef.get(c)) is not None}
         disp = None
-        if pesos and all(p is not None for p in pesos.values()):
+        if pesos:
             total_mw = sum(pesos.values())
             disp = round(sum(p * (horas_periodo - horas.get(c, 0)) for c, p in pesos.items())
                          / (horas_periodo * total_mw) * 100, 2)
-        rows.append({"central": central, "unidades": len(cods), "disponibilidad": disp,
+        rows.append({"central": central, "unidades": len(pesos) or len(cods), "disponibilidad": disp,
                      "hora_desconectadas": round(h, 2), "total": horas_periodo})
     return {"table": "CENTRAL", "columns": columns, "rows": rows,
             "aviso": _aviso_central(vig, fuera, f2.date())}
 
 
-def _aviso_central(vig: tuple | None, fuera: list[str], fin) -> str:
-    partes = []
-    if vig:
-        partes.append(
-            "Disponibilidad de cada central: promedio de sus unidades ponderado por la potencia "
-            f"efectiva oficial del CNDC (vigencia {vig[0]:%d/%m/%Y} al {vig[1]:%d/%m/%Y}). Cuentan "
-            "todas las unidades de la central; las que no tuvieron eventos suman 100 %. Horas "
-            "Desconectadas suma las de todas sus unidades, por eso puede superar las Horas Periodo.")
-        if fin > vig[1]:
-            partes.append("Se usan los valores vigentes el día de inicio para todo el rango.")
-    else:
-        partes.append("No hay potencia efectiva oficial para el día de inicio (la tabla rige desde "
-                      "01/11/2026): la disponibilidad por central queda en «-».")
+def _aviso_central(vig: tuple, fuera: list[str], fin) -> str:
+    partes = [(
+        "Disponibilidad de cada central: promedio de sus unidades ponderado por la potencia "
+        f"efectiva oficial del CNDC (vigencia {vig[0]:%d/%m/%Y} al {vig[1]:%d/%m/%Y}). Cuentan "
+        "todas las unidades de la central; las que no tuvieron eventos suman 100 %. Horas "
+        "Desconectadas suma las de todas sus unidades, por eso puede superar las Horas Periodo.")]
+    if not vig[2]:
+        partes.append(NOTA_SIN_OFICIAL.replace("la fecha", "el día de inicio")
+                      + " Los pesos son aproximados.")
+    elif fin > vig[1]:
+        partes.append("Se usan los valores vigentes el día de inicio para todo el rango.")
     if fuera:
         muestra = ", ".join(fuera[:8]) + (f" y {len(fuera) - 8} más" if len(fuera) > 8 else "")
         partes.append(f"{len(fuera)} componente(s) marcado(s) fuera del cálculo (no son generadores "

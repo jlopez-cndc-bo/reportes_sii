@@ -23,10 +23,20 @@ def test_pondera_por_potencia_y_cuenta_unidades_sin_eventos(monkeypatch):
     assert "vigencia 01/11/2026 al 30/04/2027" in res["aviso"]
 
 
-def test_sin_vigencia_no_pondera(monkeypatch):
+def test_sin_vigencia_usa_la_mas_proxima_y_avisa(monkeypatch):
     monkeypatch.setattr(hd, "query", lambda sql, params=None: (
         [{"codigo_objeto": "COR01"}] if "DISTINCT" in sql else [{"id_objeto": 1}]))
     monkeypatch.setattr(hd, "report", lambda *a, **k: {"rows": []})
-    res = hd.report_central(datetime(2026, 1, 1), datetime(2026, 1, 31), [1])
-    assert res["rows"][0]["disponibilidad"] is None
-    assert "No hay potencia efectiva" in res["aviso"]
+    res = hd.report_central(datetime(2019, 1, 1), datetime(2019, 1, 31), [1])
+    assert res["rows"][0]["disponibilidad"] == 100.0
+    assert "vigencia 01/11/2020" in res["aviso"] and "más próxima" in res["aviso"]
+
+
+def test_unidades_que_no_existian_no_pesan(monkeypatch):
+    # Aguaí en 2021: sólo AGU01 figura en la vigencia; AGU02/03 aún no existían.
+    monkeypatch.setattr(hd, "query", lambda sql, params=None: (
+        [{"codigo_objeto": "AGU01"}] if "DISTINCT" in sql else [{"id_objeto": 1}]))
+    monkeypatch.setattr(hd, "report", lambda *a, **k: {"rows": [
+        {"codigo_objeto": "AGU01", "hora_desconectadas": 24.0, "total": 48}]})
+    fila = hd.report_central(datetime(2021, 1, 1), datetime(2021, 1, 2), [1])["rows"][0]
+    assert fila["unidades"] == 1 and fila["disponibilidad"] == 50.0

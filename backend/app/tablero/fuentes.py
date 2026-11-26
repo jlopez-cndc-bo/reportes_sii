@@ -15,6 +15,7 @@ from ..hfd import consolidados as C
 from ..potencia_efectiva import CENTRAL, ESTADOS_CC, central_de, efectiva, vigencia
 from ..reports import potencia_temperatura as POT
 from ..reports import temperatura as TEMP
+from ..reports.potencia_temperatura import NOTA_SIN_OFICIAL, efectiva_dia
 from ..sisfalla.cndc_final import CNDC_FINAL_SUBQUERY, cndc_final_binds
 from ..sisfalla.reportes import falla_alimentadores
 from .periodos import Rango, recortar, unir
@@ -159,18 +160,19 @@ def _nota_cc(n: int) -> str | None:
 def op_disponibilidad(r: Rango, ahora: datetime) -> dict[str, Any]:
     """Σ Pef(c,día) × horas disponibles / Σ Pef(c,día) × horas, día por día."""
     dias = [r.desde.date() + timedelta(days=k) for k in range(r.dias())]
-    sin_pef = [d for d in dias if vigencia(d) is None]
-    if sin_pef:
-        return _punto(None, nota=f"Sin potencia efectiva oficial vigente el {sin_pef[0]:%d/%m/%Y} "
-                                 "(la tabla cargada rige desde 01/11/2026).")
+    # Sin Excel ese día: curvas de la base / vigencia más próxima (efectiva_dia), con nota.
+    # shortcut: se evalúa una vez por mes (las curvas cambian ~mensual); por día si hace falta precisión.
+    sin_pef = sorted({d.replace(day=1) for d in dias if vigencia(d) is None})
+    aprox = {m: efectiva_dia(list(CENTRAL), m)[0] for m in sin_pef}
     eventos = _eventos(r.desde, r.hasta, ahora)
     tramos = _tramos(eventos, {PROGRAMADA, FORZADA})
     num = den = mwh_ind = 0.0
     for d in dias:
         dia = Rango(max(datetime.combine(d, datetime.min.time()), r.desde),
                     min(datetime.combine(d + timedelta(days=1), datetime.min.time()), r.hasta), "")
+        pef = aprox.get(d.replace(day=1)) if vigencia(d) is None else None
         for cod in CENTRAL:
-            p = efectiva(cod, d)
+            p = pef.get(cod) if pef is not None else efectiva(cod, d)
             if p is None:
                 continue
             ind = sum(recortar(a, b, dia) for a, b in tramos.get(cod, []))
@@ -179,7 +181,8 @@ def op_disponibilidad(r: Rango, ahora: datetime) -> dict[str, Any]:
             mwh_ind += p * ind
     if not den:
         return _punto(None, nota="Sin horas en el periodo.")
-    return _punto(num / den * 100, _corte(r), nota=_nota_cc(_cc_excluidos(eventos)),
+    nota = " ".join(filter(None, [NOTA_SIN_OFICIAL if sin_pef else None, _nota_cc(_cc_excluidos(eventos))]))
+    return _punto(num / den * 100, _corte(r), "parcial" if sin_pef else "completo", nota or None,
                   mwh_indisponibles=round(mwh_ind, 2), unidades=len(CENTRAL))
 
 

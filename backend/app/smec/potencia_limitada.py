@@ -8,7 +8,8 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from ..db import query
-from ..potencia_efectiva import efectiva
+from ..potencia_efectiva import efectiva, vigencia
+from ..reports.potencia_temperatura import NOTA_SIN_OFICIAL, efectiva_dia
 from ..sqlutil import in_clause
 
 
@@ -57,12 +58,22 @@ def potencia_limitada(f1: datetime, f2: datetime) -> dict[str, Any]:
             ini = r["fecha"] + timedelta(minutes=15 * (r["intervalo"] - 1))
             muestras.setdefault(r["id"], []).append((ini, r["potencia"]))
 
+    aprox: dict = {}  # día sin Excel → potencias aproximadas (efectiva_dia), una consulta por día
+    unidades = sorted({e["unidad"] for e in eventos})
+
+    def _pef(cod: str, dia) -> float | None:
+        if vigencia(dia):
+            return efectiva(cod, dia)
+        if dia not in aprox:
+            aprox[dia] = efectiva_dia(unidades, dia)[0]
+        return aprox[dia].get(cod)
+
     out = []
     for e in eventos:
         desde = e["hora_ingreso"]
         hasta = e["hora_salida"] or min(fin, datetime.now())
         lim = e["potencia_limitada"]
-        pe = efectiva(e["unidad"], e["fecha"].date())
+        pe = _pef(e["unidad"], e["fecha"].date())
         med = medidor.get(e["id_elemento"])
         mx = _max_medido(muestras.get(med, []), desde, hasta) if med else None
         out.append({
@@ -89,7 +100,8 @@ def potencia_limitada(f1: datetime, f2: datetime) -> dict[str, Any]:
         {"key": "causa", "label": "Causa"},
     ]
     return {"table": "POT_LIMITADA", "columns": columns, "rows": out,
-            "aviso": "Pot. efectiva: tabla semestral del CNDC (desde 01/11/2026). "
+            "aviso": "Pot. efectiva: Excel semestral del CNDC (desde 01/11/2020). "
+                     + (NOTA_SIN_OFICIAL + " " if aprox else "") +
                      "Máx. medido: medidor propio de la unidad en SMEC, convertido a MW; "
                      "se mide en bloques de 15 min, así que en eventos cortos incluye "
                      "minutos de antes o después del evento. "
