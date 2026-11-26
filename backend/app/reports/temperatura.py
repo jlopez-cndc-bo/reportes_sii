@@ -1,4 +1,4 @@
-"""Temperatura por zona térmica y su relación con la demanda máxima.
+"""Temperatura por zona térmica y su relación con la potencia de punta.
 
 Fuente: POSTDES.TEMPERATURA_ZONAS_TERMICAS_DET (horaria, °C, desde 2005; `consolidado` = 0 en
 los días aún no consolidados) y POSTDES.TEMPERATURA (catálogo de zonas). Las unidades de cada

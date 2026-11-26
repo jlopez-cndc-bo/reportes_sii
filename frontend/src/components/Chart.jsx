@@ -11,8 +11,7 @@ export const CHART_COLORS = [
 ];
 
 // El ancho del viewBox sigue al ancho real (texto a 11 px reales en cualquier columna).
-const H = 340;
-const M = { top: 16, right: 110, bottom: 30, left: 70 };
+const M0 = { top: 16, bottom: 30, left: 70 };
 const INK_MUTED = "#898781", GRID = "#e1e0d9", BASELINE = "#c3c2b7";
 
 function niceTicks(min, max, n = 5) {
@@ -51,12 +50,16 @@ export default function Chart({ series, labels, unit, omitidas }) {
   yMax += pad;
   if (yMin < 0) yMin -= pad;
 
+  // Rótulo al final de la línea sólo sin leyenda (1 serie); con leyenda, el margen derecho es para el último tick.
+  const rotuloFinal = series.length === 1;
+  const M = { ...M0, right: rotuloFinal ? 110 : 36 };
+  const H = Math.min(480, Math.max(280, Math.round(W * 0.37)));
   const innerW = W - M.left - M.right, innerH = H - M.top - M.bottom;
   const x = (i) => M.left + (labels.length <= 1 ? innerW / 2 : (i * innerW) / (labels.length - 1));
   const y = (v) => M.top + ((yMax - v) * innerH) / (yMax - yMin);
 
   const yTicks = niceTicks(yMin, yMax);
-  const xStep = Math.max(1, Math.ceil(labels.length / 8));
+  const xStep = Math.max(1, Math.ceil(labels.length / Math.max(2, Math.min(8, Math.floor(innerW / 64)))));
   const xTicks = labels.map((_, i) => i).filter((i) => i % xStep === 0);
   const conMarcadores = labels.length <= 40;
 
@@ -88,7 +91,7 @@ export default function Chart({ series, labels, unit, omitidas }) {
   // largo para que no se monte sobre el nombre (~6,5 px por carácter a 11 px).
   const maxTxt = tip ? Math.max(0, ...tip.map((t) => t.txt.length)) : 0;
   const tipW = Math.max(230, 170 + Math.ceil(maxTxt * 6.5)), tipH = tip ? 20 + tip.length * 16 : 0;
-  const tipX = hover !== null && x(hover) + 12 + tipW > W - M.right + 100
+  const tipX = hover !== null && x(hover) + 12 + tipW > W - 4
     ? Math.max(0, x(hover) - tipW - 12) : (hover !== null ? x(hover) + 12 : 0);
 
   return (
@@ -124,7 +127,7 @@ export default function Chart({ series, labels, unit, omitidas }) {
                   fill={CHART_COLORS[si]} stroke="#fff" strokeWidth="2" />
               ) : null)}
             {/* Etiqueta directa al final (sólo con pocas series) */}
-            {series.length <= 4 && (() => {
+            {rotuloFinal && (() => {
               let last = -1;
               s.values.forEach((v, i) => { if (typeof v === "number") last = i; });
               if (last < 0) return null;

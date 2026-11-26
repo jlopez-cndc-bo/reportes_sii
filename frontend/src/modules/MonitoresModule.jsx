@@ -135,8 +135,7 @@ function Dia() {
               <div className="mon-etq">Potencia de punta{data.dia_smec === data.fecha ? " del día"
                 : data.punta.valor != null ? ` · ${fecha(data.dia_smec)}` : ""}</div>
               {data.dia_smec !== data.fecha && data.punta.valor != null && (
-                <p className="mon-aviso-smec">Último dato SMEC: {fecha(data.dia_smec)}. El día {fecha(data.fecha)} se
-                  carga al cerrar la transacción diaria.</p>
+                <p className="mon-aviso-smec">SMEC todavía no tiene el {fecha(data.fecha)}: se carga al cerrar la transacción diaria.</p>
               )}
               {data.punta.valor != null ? <>
                 <div className={`mon-cifra${data.dia_smec !== data.fecha ? " mon-cifra--previa" : ""}`}>

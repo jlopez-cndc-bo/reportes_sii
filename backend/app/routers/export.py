@@ -100,11 +100,11 @@ def exp_horas_tipo_operacion(req: HorasTipoOperacionRequest):
     return _xlsx_response(res, "Horas por tipo de operación", req.fecha_inicio, req.fecha_fin)
 
 
-@router.post("/punta-temperatura", summary="Demanda máxima y temperatura, como archivo .xlsx")
+@router.post("/punta-temperatura", summary="Potencia de punta y temperatura, como archivo .xlsx")
 def exp_punta_temperatura(req: TemperaturaRequest):
     _validar(req.fecha_inicio, req.fecha_fin)
     res = _guard(_temp, temperatura.punta_temperatura, req.fecha_inicio, req.fecha_fin)
-    return _xlsx_response(res, "Demanda maxima y temperatura", req.fecha_inicio, req.fecha_fin)
+    return _xlsx_response(res, "Potencia de punta y temperatura", req.fecha_inicio, req.fecha_fin)
 
 
 @router.post("/temperatura-consulta", summary="Temperaturas en hoja plana (ZONA TÉRMICA, FECHA, horas 00:00..23:00), .xlsx")
@@ -121,11 +121,11 @@ def exp_temperatura_consulta(req: TemperaturaConsultaRequest):
 def exp_indices(req: IndicesRequest):
     _validar(req.fecha_inicio, req.fecha_fin, indices.MAX_DIAS)
     res = _guard(indices.reporte, req.fecha_inicio, req.fecha_fin, req.unidades)
-    return _xlsx_response(res, "Desempeno FOR EFOR EFORd", req.fecha_inicio, req.fecha_fin)
+    return _xlsx_response(res, "Desempeño FOR EFOR EFORd", req.fecha_inicio, req.fecha_fin)
 
 
 @router.post("/potencia-temperatura", summary="Potencia efectiva térmica por temperatura, como archivo .xlsx")
 def exp_potencia_temperatura(req: PotenciaTemperaturaRequest):
     _validar(req.fecha_inicio, req.fecha_fin)
     res = _guard(potencia_temperatura.reporte, req.fecha_inicio, req.fecha_fin, req.nivel, req.smec)
-    return _xlsx_response(res, "Potencia termica por temperatura", req.fecha_inicio, req.fecha_fin)
+    return _xlsx_response(res, "Potencia térmica por temperatura", req.fecha_inicio, req.fecha_fin)

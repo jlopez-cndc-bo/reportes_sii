@@ -65,7 +65,7 @@ function HelpModal({ onClose }) {
 
           <h3>Reporte de la Operación · Temperatura</h3>
           <p>Temperatura horaria de las <b>zonas térmicas</b> (POSTDES): horas en columnas, una fila por fecha y zona.
-             «Demanda máxima y temperatura» cruza, día por día, la potencia de punta del SIN
+             «Potencia de punta y temperatura» cruza, día por día, la potencia de punta del SIN
              (retiros SMEC) con la temperatura de cada zona a esa hora.</p>
 
           <h3>Reporte de la Operación · Potencia térmica por temperatura</h3>
