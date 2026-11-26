@@ -80,9 +80,9 @@ function HelpModal({ onClose }) {
              positivos; <b>neta</b>, la suma de ambas.</p>
 
           <h3>Sistema de Medición Comercial · SIN</h3>
-          <p><b>Potencia de punta (inyección)</b>: para cada día, el intervalo de 15 min con la
-             mayor inyección total del SIN y el aporte de las centrales marcadas
-             (las demás van en «Resto»). <b>Conciliación</b>: inyección menos
+          <p><b>Potencia de punta</b>: para cada día, el intervalo de 15 min con el mayor retiro
+             total del SIN (la punta que publica el CNDC) y la generación de las centrales marcadas
+             en ese intervalo (las demás van en «Resto»; juntas suman la generación, no la punta). <b>Conciliación</b>: inyección menos
              retiro por día, es decir, pérdidas y desbalance de medición.
              <b> Potencia limitada</b>: cada evento de limitación con su límite
              frente a la potencia efectiva de la unidad y a lo que midió su

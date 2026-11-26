@@ -6,17 +6,17 @@ from app.smec.sistema import _conciliar, _pico_del_dia
 _COLS = ["CENTRAL", "COD_CENTRAL", "DIR", "I1", "I2", "I3"]
 
 
-def test_pico_toma_el_intervalo_de_maxima_inyeccion_e_ignora_retiro():
+def test_pico_toma_el_intervalo_de_maximo_retiro_y_desglosa_la_generacion():
     rows = [("A", 1, -1, 10.0, 30.0, 20.0),
-            ("B", 2, -1, 5.0, -2.0, 15.0),   # consumo propio: resta del total
-            ("R", 3, 1, 999.0, 999.0, 999.0)]  # retiro: no cuenta
+            ("B", 2, -1, 5.0, -2.0, 15.0),   # consumo propio: resta de la generación
+            ("R", 3, 1, 14.0, 40.0, 33.0)]   # retiro: define la punta (no coincide con la máx. inyección)
     p = _pico_del_dia(_COLS, rows)
-    assert p["total"] == 35.0 and p["hora"] == "16:00"
-    assert p["aporte"] == {1: 20.0, 2: 15.0}
+    assert p["total"] == 40.0 and p["hora"] == "08:00"
+    assert p["generacion"] == 28.0 and p["aporte"] == {1: 30.0, 2: -2.0}
 
 
 def test_pico_sin_datos():
-    assert _pico_del_dia(_COLS, [("A", 1, -1, None, None, None)]) is None
+    assert _pico_del_dia(_COLS, [("A", 1, -1, 1.0, 2.0, 3.0), ("R", 3, 1, None, None, None)]) is None
 
 
 def test_conciliacion_diferencia_y_porcentaje():

@@ -59,8 +59,8 @@ const SMEC_REPORTS = [
   { grupo: "SIN", id: "generacion_demanda", label: "Generación vs demanda",
     descripcion: "Curva de un día cada 15 minutos: generación (inyección) frente a demanda (retiros) del SIN y su diferencia. El máximo de la demanda es la potencia de punta del día.",
     interval: false, fin: false, sinArbol: true, unidad: "kW" },
-  { grupo: "SIN", id: "pico_sin", descripcion: "Para cada día, el intervalo de 15 minutos con la mayor inyección del SIN y el aporte de cada central.",
-    label: "Potencia de punta (inyección)", interval: false, fin: true, unidad: "kW",
+  { grupo: "SIN", id: "pico_sin", descripcion: "Para cada día, el intervalo de 15 minutos con la mayor demanda del SIN (retiros; la punta que publica el CNDC) y la generación de cada central en ese intervalo.",
+    label: "Potencia de punta", interval: false, fin: true, unidad: "kW",
     soloIny: true, arbolOpcional: true },
   { grupo: "SIN", id: "conciliacion", descripcion: "Inyección menos retiro de cada día: pérdidas y desbalance de medición.",
     label: "Conciliación", interval: false, fin: true,
@@ -218,7 +218,7 @@ export default function SmecModule() {
   const puedeGenerar = !treeLoading && (idsSel.length > 0 || !requiereSeleccion);
   // Textos del SIN: el modo (kW / %) es el de la consulta generada, no el del selector.
   const descSin = (pct) => (report.id === "pico_sin"
-    ? `Todo el SIN (inyección), valores en ${pct ? "% de la punta" : "kW"}` : `Todo el SIN, valores en ${unidad}`);
+    ? `Punta por retiros; generación por central en ${pct ? "% de la generación" : "kW"}` : `Todo el SIN, valores en ${unidad}`);
   const estadoSin = report.sinArbol ? "Sin selección requerida"
     : idsSel.length ? `${idsSel.length} central(es) a desglosar` : "Solo total del SIN";
 
@@ -296,7 +296,7 @@ export default function SmecModule() {
               <div className="opt-group">
                 <span className="opt-title">Mostrar</span>
                 <div className="opt-radios">
-                  {[[false, "kW"], [true, "% de la punta"]].map(([v, lbl]) => (
+                  {[[false, "kW"], [true, "% de la generación"]].map(([v, lbl]) => (
                     <button key={lbl} type="button" aria-pressed={picoPct === v}
                       className={`seg ${picoPct === v ? "seg--on" : ""}`} onClick={() => setPicoPct(v)}>{lbl}</button>
                   ))}
@@ -347,8 +347,8 @@ export default function SmecModule() {
           aside={<span className="qsec-count">{idsSel.length} seleccionada(s)</span>}>
           {report.arbolOpcional && (
             <div className="tree-note">
-              El total es siempre el del SIN; las centrales marcadas se muestran como columnas y
-              las demás se agrupan en «Resto».
+              La punta y la generación son siempre las del SIN; las centrales marcadas se muestran como
+              columnas y las demás se agrupan en «Resto» (juntas suman la generación).
               {idsSel.length > PICO_COLS_AVISO && ` Con ${idsSel.length} centrales marcadas, la tabla tendrá ${idsSel.length + 1} columnas de aporte.`}
             </div>
           )}

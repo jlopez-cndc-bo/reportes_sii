@@ -222,7 +222,7 @@ class SmecReporteRequest(BaseModel):
         ),
     )
     porcentaje: bool = Field(
-        False, description="Sólo pico_sin: aporte de cada central en % del total del SIN.")
+        False, description="Sólo pico_sin: generación de cada central en % de la generación del SIN en la hora de punta.")
 
 
 # ─────────────────────────────── SISFALLA ───────────────────────────────

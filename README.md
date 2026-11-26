@@ -94,7 +94,7 @@ variante con una opción; el `tipo` que va a la API es el de la variante.
 | Mediciones | Energía | Período: Día / Mes / Año → `energia_dia` / `energia_mes` / `energia_anio` | Día y Mes desde procs; Año y Mes con SQL propio (ver notas) |
 | Índices | Factor de carga | Período: Un día / Rango → `factor_dia` / `factor_periodo` | `TRUNC(E/(P·h),2)` |
 | Índices | Capacidad efectiva | Agrupar por: Sistema / Tecnología → `capacidad_sistema` / `mix_tecnologia` | Sólo inyección |
-| SIN | Potencia de punta (inyección) · Conciliación · Potencia limitada | — | `pico_sin` / `conciliacion` / `potencia_limitada` |
+| SIN | Potencia de punta · Conciliación · Potencia limitada | — | `pico_sin` / `conciliacion` / `potencia_limitada` |
 
 Endpoints: `GET /api/smec/estructura`, `POST /api/smec/reporte`, `POST /api/smec/exportar`.
 

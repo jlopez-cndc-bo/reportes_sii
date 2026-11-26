@@ -27,11 +27,13 @@ _TITULOS = {
     "factor_periodo": "Factor de carga - Rango",
     "capacidad_sistema": "Capacidad efectiva - Por sistema",
     "mix_tecnologia": "Capacidad efectiva - Por tecnología",
-    "pico_sin": "Potencia de punta del SIN por día (inyección)",
+    "pico_sin": "Potencia de punta del SIN por día",
     "generacion_demanda": "Generación vs demanda",
     "conciliacion": "Conciliación inyección-retiro",
     "potencia_limitada": "Potencia limitada",
 }
+# Reportes del SIN que combinan inyección y retiro: el Excel no lleva dirección.
+_SIN_DIRECCION = {"pico_sin", "generacion_demanda", "conciliacion", "potencia_limitada"}
 
 
 def _guard(fn, *args, **kwargs):
@@ -162,12 +164,15 @@ def exportar(req: SmecReporteRequest):
             for r in res["rows"]
         ]}
     ini = req.fecha_inicio.date().isoformat()
-    dir_lbl = "Inyeccion" if req.direccion == "iny" else "Retiro"  # ASCII: va en el nombre de archivo
-    dir_titulo = "Inyección" if req.direccion == "iny" else "Retiro"
     label = _TITULOS.get(req.tipo, req.tipo)
-    titulo = f"Sistema de Medición Comercial · {label} ({dir_titulo}) — desde {ini}"
+    if req.tipo in _SIN_DIRECCION:
+        titulo, sufijo = f"Sistema de Medición Comercial · {label} — desde {ini}", ""
+    else:
+        dir_titulo = "Inyección" if req.direccion == "iny" else "Retiro"
+        titulo = f"Sistema de Medición Comercial · {label} ({dir_titulo}) — desde {ini}"
+        sufijo = "_Inyeccion" if req.direccion == "iny" else "_Retiro"  # ASCII: va en el nombre de archivo
     buf = build_workbook(res, titulo, totales=True)
-    fname = f"SMEC_{label.replace(' ', '_')}_{dir_lbl}_{ini}.xlsx"
+    fname = f"SMEC_{label.replace(' ', '_')}{sufijo}_{ini}.xlsx"
     headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"}
     return StreamingResponse(buf, media_type=_XLSX, headers=headers)
 

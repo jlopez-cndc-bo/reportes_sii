@@ -11,6 +11,7 @@ from . import estructura
 from .reportes import PKG, _idx, _interval_labels, energia_dia
 
 _INY = -1  # DIR de inyección en los procs de potencia/energía SMEC
+_RET = 1  # DIR de retiro
 
 
 def _dias(f1: datetime, f2: datetime) -> list[datetime]:
@@ -18,58 +19,68 @@ def _dias(f1: datetime, f2: datetime) -> list[datetime]:
 
 
 def _pico_del_dia(cols: list[str], rows: list[tuple]) -> dict[str, Any] | None:
-    """Intervalo de 15 min con la mayor inyección total y el aporte de cada
-    central en él. Pura (sin BD) para poder probarla."""
+    """Intervalo de 15 min con el mayor retiro total (la punta que publica el
+    CNDC), la generación total en él y la de cada central. Pura (sin BD)."""
     icols = [c for c in cols if c.startswith("I") and c[1:].isdigit()]
     iidx = [cols.index(c) for c in icols]
     di, ic = _idx(cols, "DIR"), _idx(cols, "COD_CENTRAL")
     iny = [r for r in rows if r[di] == _INY]
-    totales = [sum(r[j] or 0 for r in iny) if any(r[j] is not None for r in iny) else None
-               for j in iidx]
-    if not any(t is not None for t in totales):
+    ret = [r for r in rows if r[di] == _RET]
+
+    def total(filas, j):
+        return sum(r[j] or 0 for r in filas) if any(r[j] is not None for r in filas) else None
+
+    puntas = [total(ret, j) for j in iidx]
+    if not any(t is not None for t in puntas):
         return None
-    k = max((i for i, t in enumerate(totales) if t is not None), key=lambda i: totales[i])
+    k = max((i for i, t in enumerate(puntas) if t is not None), key=lambda i: puntas[i])
     j = iidx[k]
-    return {"hora": _interval_labels(len(icols))[k], "total": round(totales[k], 6),
+    gen = total(iny, j)
+    return {"hora": _interval_labels(len(icols))[k], "total": round(puntas[k], 6),
+            "generacion": round(gen, 6) if gen is not None else None,
             "aporte": {r[ic]: r[j] for r in iny}}
 
 
 def pico_sin(f1: datetime, f2: datetime, ids: list[int], pct: bool = False) -> dict[str, Any]:
-    """Una fila por día: hora de la punta del SIN (máxima inyección total en
-    15 min), total y aporte de cada central marcada; «Resto» = las demás."""
+    """Una fila por día: hora y valor de la punta del SIN (máximo retiro total
+    en 15 min), la generación en ese intervalo y la de cada central marcada;
+    «Resto» = la generación de las demás (centrales + Resto = generación)."""
     sel = list(dict.fromkeys(ids))
     nombres: dict[int, str] = {}
     out = []
     for d in _dias(f1, f2):
         cols, rows = call_proc(f"{PKG}.P_GET_POTENCIA_CENTRAL", [d, None])
-        ic, nc = _idx(cols, "COD_CENTRAL"), _idx(cols, "CENTRAL")
-        nombres.update({r[ic]: r[nc] for r in rows})
+        ic, nc, di = _idx(cols, "COD_CENTRAL"), _idx(cols, "CENTRAL"), _idx(cols, "DIR")
+        nombres.update({r[ic]: r[nc] for r in rows if r[di] == _INY})
         p = _pico_del_dia(cols, rows)
         fila: dict[str, Any] = {"fecha": d.strftime("%d/%m/%Y")}
         if p is None:
             out.append(fila)
             continue
-        tot = p["total"]
-        conv = (lambda v, tot=tot: round(v * 100 / tot, 10) if v is not None and tot else None) if pct \
-            else (lambda v: v)
-        fila.update(hora=p["hora"], total=tot)
-        resto = tot
-        for c in sel:
-            v = p["aporte"].get(c)
-            fila[f"c{c}"] = conv(v)
-            resto -= v or 0
-        fila["resto"] = conv(round(resto, 6))
+        gen = p["generacion"]
+        conv = (lambda v, gen=gen: round(v * 100 / gen, 10) if v is not None and gen else None) if pct             else (lambda v: v)
+        fila.update(hora=p["hora"], total=p["total"], generacion=gen)
+        if gen is not None:
+            resto = gen
+            for c in sel:
+                v = p["aporte"].get(c)
+                fila[f"c{c}"] = conv(v)
+                resto -= v or 0
+            fila["resto"] = conv(round(resto, 6))
         out.append(fila)
     fmt = "0.0" if pct else "num"
     columns = [{"key": "fecha", "label": "Fecha"},
+               {"key": "total", "label": "Potencia de punta (retiros, kW)", "format": "num", "sinTotal": True},
                {"key": "hora", "label": "Hora de punta"},
-               {"key": "total", "label": "Total SIN (kW)", "format": "num", "sinTotal": True}]
+               {"key": "generacion", "label": "Generación en ese intervalo (kW)", "format": "num", "sinTotal": True}]
     # Sumar puntas de días distintos no tiene sentido: sin fila TOTAL.
     suf = " %" if pct else ""
     columns += [{"key": f"c{c}", "label": nombres.get(c, str(c)) + suf, "format": fmt, "sinTotal": True}
                 for c in sel]
     columns.append({"key": "resto", "label": "Resto" + suf, "format": fmt, "sinTotal": True})
-    return {"table": "PICO_SIN", "columns": columns, "rows": out}
+    return {"table": "PICO_SIN", "columns": columns, "rows": out,
+            "aviso": "Las centrales y «Resto» suman la generación del intervalo, no la punta "
+                     "(diferencia: pérdidas y desbalance de medición)."}
 
 
 def _conciliar(iny: dict[str, float | None], ret: dict[str, float | None],
