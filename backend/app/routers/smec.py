@@ -1,5 +1,6 @@
 """Endpoints REST del módulo SMEC (energía y potencia)."""
 from datetime import datetime
+from typing import Annotated
 from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Query
@@ -125,10 +126,10 @@ def reporte(req: SmecReporteRequest):
     ),
 )
 def reporte_get(
-    tipo: str = Query(..., examples=["potencia_hora"]),
-    fecha_inicio: datetime = Query(..., examples=["2026-06-01T00:00:00"]),
-    fecha_fin: datetime | None = Query(None, examples=["2026-06-30T23:59:59"]),
-    unidades: list[int] = Query(default_factory=list),
+    tipo: Annotated[str, Query(examples=["potencia_hora"])],
+    fecha_inicio: Annotated[datetime, Query(examples=["2026-06-01T00:00:00"])],
+    unidades: Annotated[list[int], Query(default_factory=list)],
+    fecha_fin: Annotated[datetime | None, Query(examples=["2026-06-30T23:59:59"])] = None,
     direccion: str = Query("iny", description="'iny' (inyección) | 'ret' (retiro)."),
     nivel: str = Query("central"),
     comparar: str = Query("ninguno", description="Sólo energia_*: 'ninguno' | 'semana' | 'anio'."),

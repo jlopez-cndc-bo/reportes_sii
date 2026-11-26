@@ -5,6 +5,7 @@ La lógica vive en el paquete Oracle SMEC_POTENCIA_API (ref cursors); aquí sól
 se invoca, se filtra por dirección (Inyección=-1 / Retiro=+1) y se da forma.
 """
 from datetime import datetime, timedelta
+from itertools import pairwise
 from typing import Any
 
 from ..db import call_proc
@@ -75,7 +76,7 @@ def _indicadores(fila: dict, keys: list[str], labels: list[str]) -> None:
     vmin, hmin = min(pares, key=lambda p: p[0])
     bruta = sum(v for v, _ in pares if v > 0) * dt
     local = sum(v for v, _ in pares if v < 0) * dt
-    arranques = sum(1 for (a, _), (b, _) in zip(pares, pares[1:]) if a <= 0 < b)
+    arranques = sum(1 for (a, _), (b, _) in pairwise(pares) if a <= 0 < b)
     rampa, hrampa = None, None
     for i in range(1, len(vals)):
         if vals[i] is not None and vals[i - 1] is not None:
@@ -147,7 +148,7 @@ def _interval_labels(n: int) -> list[str]:
     step = 24 * 60 / n if n else 15
     out = []
     for i in range(n):
-        m = int(round(i * step))
+        m = round(i * step)
         out.append(f"{m // 60:02d}:{m % 60:02d}")
     return out
 

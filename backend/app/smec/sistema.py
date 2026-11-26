@@ -50,7 +50,7 @@ def pico_sin(f1: datetime, f2: datetime, ids: list[int], pct: bool = False) -> d
             out.append(fila)
             continue
         tot = p["total"]
-        conv = (lambda v: round(v * 100 / tot, 10) if v is not None and tot else None) if pct \
+        conv = (lambda v, tot=tot: round(v * 100 / tot, 10) if v is not None and tot else None) if pct \
             else (lambda v: v)
         fila.update(hora=p["hora"], total=tot)
         resto = tot

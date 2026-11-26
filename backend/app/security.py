@@ -4,6 +4,7 @@ Si APP_USER y APP_PASSWORD están definidos en el entorno, protege los
 endpoints; si no, no exige credenciales (útil para uso interno de solo lectura).
 """
 import secrets
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -13,7 +14,7 @@ from .config import get_settings
 _basic = HTTPBasic(auto_error=False)
 
 
-def require_auth(credentials: HTTPBasicCredentials | None = Depends(_basic)) -> None:
+def require_auth(credentials: Annotated[HTTPBasicCredentials | None, Depends(_basic)]) -> None:
     s = get_settings()
     if not s.auth_enabled:
         return

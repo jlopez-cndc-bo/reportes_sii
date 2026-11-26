@@ -12,7 +12,7 @@ try:
     from dotenv import load_dotenv
 
     load_dotenv()
-except Exception:  # pragma: no cover - dotenv es opcional
+except ImportError:  # pragma: no cover - dotenv es opcional
     pass
 
 
