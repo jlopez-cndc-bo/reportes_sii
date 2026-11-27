@@ -6,3 +6,4 @@ python-dotenv>=1.0
 pydantic>=2.7
 pytest>=8.0
 ldap3>=2.9
+pillow>=10

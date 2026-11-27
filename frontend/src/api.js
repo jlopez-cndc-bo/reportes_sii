@@ -47,6 +47,8 @@ async function download(path, body) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+  // Avisos de generación (sólo los manda el IMP); el resto de las descargas los ignora.
+  return decodeURIComponent(res.headers.get("X-Avisos") || "");
 }
 
 export const api = {
@@ -67,6 +69,9 @@ export const api = {
   sisfallaExportar: (endpoint, body) => download(`/api/sisfalla/exportar/${endpoint}`, body),
   sisfallaBuscarFallas: (q, limite = 30) =>
     fetch(`/api/sisfalla/fallas/buscar?${new URLSearchParams({ q: q || "", limite })}`).then((r) => r.json()),
+  // Informe de Mediano Plazo
+  impEstudios: () => send("GET", "/api/imp/estudios"),
+  impAnexo: (body) => download("/api/imp/anexo", body),
   // SCADA HFD
   hfdRegistros: (body) => post("/api/hfd/registros", body),
   hfdExportar: (body) => download("/api/hfd/exportar", body),

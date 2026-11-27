@@ -69,6 +69,8 @@ class Settings:
         # Recarga del día en rs7 (rspectrum7.Web, SSE) tras guardar correcciones.
         self.rs7_reprocess_url: str = os.getenv("RS7_REPROCESS_URL", "http://192.168.2.122:5000/api/reprocess")
         self.rs7_reprocess_token: str = os.getenv("RS7_REPROCESS_TOKEN", "")
+        # Informe de Mediano Plazo: una carpeta AAAA-MM por estudio con los archivos de la GP.
+        self.imp_data_dir: str = os.getenv("IMP_DATA_DIR", "")
 
     @property
     def auth_enabled(self) -> bool:

@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
 from .db import close_pool, init_pool, pool_ready
-from .routers import export, hfd, reports, sisfalla, smec, tablero
+from .routers import export, hfd, imp, reports, sisfalla, smec, tablero
 from .security import require_auth
 from .tablero.servicio import precalentar
 
@@ -55,6 +55,10 @@ _TAGS_METADATA = [
         "description": "Tablero «Monitores»: indicadores por periodo con comparaciones, tendencia, fuente y fecha del dato; «Ahora» con HFD, unidades indisponibles y alertas.",
     },
     {
+        "name": "imp",
+        "description": "Informe de Mediano Plazo: anexos 2, 4, 5 y 6 generados como .xlsx desde los archivos de cada estudio (carpeta AAAA-MM en IMP_DATA_DIR). No usa Oracle.",
+    },
+    {
         "name": "sisfalla",
         "description": (
             "Sistema de Fallas: los 14 "
@@ -89,6 +93,7 @@ app.include_router(smec.router, dependencies=[Depends(require_auth)])
 app.include_router(sisfalla.router, dependencies=[Depends(require_auth)])
 app.include_router(hfd.router, dependencies=[Depends(require_auth)])
 app.include_router(tablero.router, dependencies=[Depends(require_auth)])
+app.include_router(imp.router, dependencies=[Depends(require_auth)])
 
 
 @app.get("/health")
