@@ -29,4 +29,7 @@ def in_clause(unidades: list[int], prefix: str = "u") -> tuple[str, dict[str, An
         name = f"{prefix}{i}"
         binds[name] = int(u)
         names.append(f":{name}")
-    return "(" + ", ".join(names) + ")", binds
+    if len(names) <= 1000:
+        return "(" + ", ".join(names) + ")", binds
+    # ORA-01795: una lista IN admite 1000 expresiones; una subconsulta no tiene ese límite.
+    return "(" + " UNION ALL ".join(f"SELECT {n} FROM dual" for n in names) + ")", binds

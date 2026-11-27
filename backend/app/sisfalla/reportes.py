@@ -25,6 +25,8 @@ from .fuentes import (
     componentes_sti_source,
     personas_source,
 )
+from .plazos_rct import MARGEN_FINAL, MARGEN_PRELIMINAR, plazo_final, plazo_preliminar
+from .plazos_rct import estado as estado_rct
 
 MAX_LIMITE = 2000
 
@@ -82,22 +84,34 @@ def seguimiento_informes(
     limite: int = 500,
     agente_exacto: bool = False,
 ) -> dict[str, Any]:
+    """Plazos RCT y envío de informes preliminar/final, por falla y agente notificado.
+
+    F_GF_REG_INFORMEFALLA (el seguimiento manual del original) no se llena desde
+    2020; aquí los plazos se calculan como en el SisFalla web (plazos_rct). Sólo
+    entran notificados que alguna vez enviaron un informe (deja fuera a la AE).
+    """
+    c = codigos()
+    envio = """(SELECT MIN(i.FECHA_REGISTRO) FROM F_GF_INFORMEFALLA i
+                 WHERE i.PK_COD_FALLA = n.PK_COD_FALLA AND i.PK_ORIGEN_INFORME = n.PK_COD_PERSONA
+                   AND i.PK_D_COD_TIPOINFORME = {tipo} AND i.D_COD_ESTADO_INF IN (:eenv, :eapr))"""
     sql = f"""
-        SELECT a.PK_COD_FALLA,
-               a.PK_COD_PERSONA,
+        SELECT n.PK_COD_FALLA,
                NVL(p.SIGLA, '') AS SIGLA_AGENTE,
                NVL(p.NOM_PERSONA, '') AS NOM_AGENTE,
-               a.PLAZO,
-               a.D_COD_SEGUIMIENTO_INF,
-               NVL(d.DESCRIPCION_DOMINIO, '') AS SEGUIMIENTO
-        FROM F_GF_REG_INFORMEFALLA a
-        LEFT JOIN {personas_source()} p ON p.PK_COD_PERSONA = a.PK_COD_PERSONA
-        LEFT JOIN P_DEF_DOMINIOS d ON d.COD_DOMINIO = a.D_COD_SEGUIMIENTO_INF
-        WHERE 1 = 1
+               r.FEC_INICIO,
+               {envio.format(tipo=":tprel")} AS ENV_PRELIMINAR,
+               {envio.format(tipo=":tfinal")} AS ENV_FINAL
+        FROM F_GF_NOTIFICACION n
+        JOIN F_GF_REGFALLA r ON r.PK_COD_FALLA = n.PK_COD_FALLA
+        LEFT JOIN {personas_source()} p ON p.PK_COD_PERSONA = n.PK_COD_PERSONA
+        WHERE n.D_COD_ESTADO = '1'
+          AND r.FEC_INICIO IS NOT NULL
+          AND EXISTS (SELECT 1 FROM F_GF_INFORMEFALLA x WHERE x.PK_ORIGEN_INFORME = n.PK_COD_PERSONA)
     """
-    params: dict[str, Any] = {}
+    params: dict[str, Any] = {"tprel": c.tipo_preliminar, "tfinal": c.tipo_final,
+                              "eenv": c.estado_enviado, "eapr": c.estado_aprobado}
     if cod_falla is not None:
-        sql = _agregar_filtro(sql, params, "a.PK_COD_FALLA = :cod_falla", "cod_falla", cod_falla)
+        sql = _agregar_filtro(sql, params, "n.PK_COD_FALLA = :cod_falla", "cod_falla", cod_falla)
     if agente and agente_exacto:
         sql = _agregar_filtro(sql, params, _cond_sigla_exacta("p"), "agente", agente.strip())
     elif agente:
@@ -107,32 +121,40 @@ def seguimiento_informes(
             "agente", f"%{agente}%",
         )
     if desde:
-        sql = _agregar_filtro(sql, params, "a.PLAZO >= :desde", "desde", desde)
+        sql = _agregar_filtro(sql, params, "r.FEC_INICIO >= :desde", "desde", desde)
     if hasta:
-        sql = _agregar_filtro_hasta(sql, params, "a.PLAZO < :hasta", hasta)
-    # PK_COD_FALLA primero (codifica año+número, siempre confiable); PLAZO
-    # como desempate puede estar mal poblado en registros viejos.
-    sql += " ORDER BY a.PK_COD_FALLA DESC, a.PLAZO DESC, p.SIGLA"
+        sql = _agregar_filtro_hasta(sql, params, "r.FEC_INICIO < :hasta", hasta)
+    sql += " ORDER BY n.PK_COD_FALLA DESC, p.SIGLA"
     sql, _ = limitar_top_n(sql, limite, MAX_LIMITE)
 
-    rows = [
-        {
+    ahora = datetime.now()
+    rows = []
+    for r in query(sql, params):
+        ini = r["fec_inicio"]
+        pp, pf = plazo_preliminar(ini), plazo_final(ini)
+        rows.append({
             **descomponer_cod_falla(r["pk_cod_falla"]),
-            "pkCodPersona": r["pk_cod_persona"],
             "siglaAgente": r.get("sigla_agente") or "",
             "nomAgente": r.get("nom_agente") or "",
-            "plazo": r.get("plazo"),
-            "codSeguimiento": r.get("d_cod_seguimiento_inf"),
-            "seguimiento": r.get("seguimiento") or str(r.get("d_cod_seguimiento_inf") or ""),
-        }
-        for r in query(sql, params)
-    ]
+            "fecInicio": ini,
+            "plazoPreliminar": pp,
+            "envioPreliminar": r.get("env_preliminar"),
+            "estadoPreliminar": estado_rct(pp, r.get("env_preliminar"), ahora, MARGEN_PRELIMINAR),
+            "plazoFinal": pf,
+            "envioFinal": r.get("env_final"),
+            "estadoFinal": estado_rct(pf, r.get("env_final"), ahora, MARGEN_FINAL),
+        })
     columns = [
         {"key": "codFallaTexto", "label": "Falla"},
         {"key": "siglaAgente", "label": "Agente"},
         {"key": "nomAgente", "label": "Nombre agente"},
-        {"key": "plazo", "label": "Plazo", "format": "datetime"},
-        {"key": "seguimiento", "label": "Seguimiento"},
+        {"key": "fecInicio", "label": "Inicio falla", "format": "datetime"},
+        {"key": "plazoPreliminar", "label": "Plazo preliminar", "format": "datetime"},
+        {"key": "envioPreliminar", "label": "Envío preliminar", "format": "datetime"},
+        {"key": "estadoPreliminar", "label": "Estado preliminar"},
+        {"key": "plazoFinal", "label": "Plazo final", "format": "datetime"},
+        {"key": "envioFinal", "label": "Envío final", "format": "datetime"},
+        {"key": "estadoFinal", "label": "Estado final"},
     ]
     return {"table": "SEGUIMIENTO_INFORMES", "columns": columns, "rows": rows}
 
@@ -202,13 +224,33 @@ def detalle_informes(
     # (`usuarioTransaccion`) sólo se muestra a sesiones CNDC. ReportesSII no
     # tiene sesión de usuario, así que ese dato de auditoría interna no se
     # incluye en absoluto en este reporte portado.
+    rows = _unir_repetidas(rows)
     columns = [
         {"key": "codFallaTexto", "label": "Falla"},
         {"key": "agente", "label": "Agente"},
         {"key": "tipoOperacion", "label": "Operación"},
+        {"key": "veces", "label": "Veces", "format": "num"},
+        {"key": "fechaDesde", "label": "Desde", "format": "datetime"},
         {"key": "fechaTransaccion", "label": "Fecha", "format": "datetime"},
     ]
     return {"table": "DETALLE_INFORMES", "columns": columns, "rows": rows}
+
+
+def _unir_repetidas(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Une operaciones consecutivas iguales (misma falla, agente y operación; p. ej.
+    6× CNDC_ELABORA_PRELIMINAR al guardar borradores) en una fila con «Veces» y
+    el rango Desde–Fecha. `rows` viene de la más reciente a la más antigua."""
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        k = (r.get("codFalla"), r.get("agente"), r.get("tipoOperacion"))
+        if out and out[-1]["_k"] == k:
+            out[-1]["veces"] += 1
+            out[-1]["fechaDesde"] = r.get("fechaTransaccion")
+        else:
+            out.append({**r, "_k": k, "veces": 1, "fechaDesde": r.get("fechaTransaccion")})
+    for r in out:
+        del r["_k"]
+    return out
 
 
 # ──────────────────────── Buscador de fallas (para un selector) ────────────────────────

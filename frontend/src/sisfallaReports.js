@@ -20,7 +20,7 @@ export const SISFALLA_REPORTS = [
     label: "Seguimiento de informes",
     grupo: "Informes",
     metodo: "post",
-    descripcion: "Plazos y estado de seguimiento de informes, por falla y agente.",
+    descripcion: "Plazos RCT (preliminar 48 h, final 8 días hábiles sin feriados) y envío de informes, por falla y agente notificado. Las fechas filtran por inicio de la falla.",
     campos: { codFalla: true, agente: true, desde: true, hasta: true },
     defaults: { limite: 500 },
     options: [{ type: "number", key: "limite", label: "Límite de filas", min: 1, max: 2000 }],

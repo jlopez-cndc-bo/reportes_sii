@@ -216,6 +216,7 @@ export default function SisfallaModule() {
       </main>
       {buscandoFalla && (
         <FallaSearchModal
+          inicial={filtros.codFalla}
           onClose={() => setBuscandoFalla(false)}
           onSelect={(codFallaTexto) => { setFiltro("codFalla", codFallaTexto); setBuscandoFalla(false); }}
         />

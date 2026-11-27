@@ -50,7 +50,7 @@ class TipoComponente(IntFlag):
 
 # cte_elemento en Oracle para cada bit del flag TipoComponente.
 COMPONENTE_CTE = {
-    TipoComponente.ALIMENTA: "ALIMENTA",
+    TipoComponente.ALIMENTA: "AL",
     TipoComponente.AUTOTRAN: "AUTOTRAN",
     TipoComponente.CAP_SERIE: "CAP-SERIE",
     TipoComponente.CAP_SHUNT: "CAP-SHUNT",

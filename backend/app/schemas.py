@@ -228,7 +228,7 @@ class SmecReporteRequest(BaseModel):
 # ─────────────────────────────── SISFALLA ───────────────────────────────
 
 class SeguimientoInformesRequest(BaseModel):
-    """Plazos y estado de seguimiento de informes, por falla y agente."""
+    """Plazos RCT y envío de informes preliminar/final, por falla y agente."""
 
     cod_falla: CodFalla = Field(None, description="Falla puntual: 'nro/gestión' (ej. 247/2026) o código interno PK_COD_FALLA.")
     agente: str | None = Field(None, description="Texto libre, busca por sigla o nombre del agente.")

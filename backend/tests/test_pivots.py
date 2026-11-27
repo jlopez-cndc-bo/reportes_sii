@@ -16,6 +16,14 @@ def test_in_clause_no_agrega_centinela():
     assert binds == {"u0": 5, "u1": 9}
 
 
+def test_in_clause_mas_de_1000_no_arma_lista_plana():
+    # ORA-01795: una lista IN admite 1000 expresiones; con «Todos» (1368) daba Error 500.
+    sql, binds = in_clause(list(range(1368)))
+    assert len(binds) == 1368
+    assert sql.startswith("(SELECT :u0 FROM dual UNION ALL ")
+    assert sql.count(":u") == 1368
+
+
 def test_in_clause_vacio():
     sql, binds = in_clause([])
     assert sql == "(NULL)"
@@ -177,3 +185,8 @@ def test_componentes_binds_generador():
     b = componentes_binds(TipoComponente.GENERADOR)
     assert b["generador"] == "GENERADOR"
     assert b["linea"] == ""
+
+
+def test_componentes_binds_alimenta_es_al():
+    # Los alimentadores con eventos son cte_elemento 'AL'; 'ALIMENTA' sólo tiene eventos de 2012.
+    assert componentes_binds(TipoComponente.ALIMENTA)["alimenta"] == "AL"

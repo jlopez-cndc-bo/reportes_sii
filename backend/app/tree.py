@@ -29,7 +29,7 @@ WITH rel_actual AS (
      WHERE rn = 1
 )
 SELECT id_elemento,
-       o.cte_elemento,
+       DECODE(o.cte_elemento, 'AL', 'ALIMENTA', o.cte_elemento) cte_elemento,
        o.codigo_objeto,
        p.id_objeto            id_agente,
        p.codigo_objeto        agente,
@@ -82,7 +82,7 @@ WITH rel_actual AS (
 )
 SELECT DISTINCT
        o.id_objeto            id_elemento,
-       o.cte_elemento,
+       DECODE(o.cte_elemento, 'AL', 'ALIMENTA', o.cte_elemento) cte_elemento,
        o.codigo_objeto,
        p.id_objeto            id_agente,
        p.codigo_objeto        agente,
@@ -110,7 +110,7 @@ SELECT DISTINCT
                           :generador, :linea, :reactor, :transfor)
    AND (o.fecha_inicio IS NULL OR o.fecha_inicio <= TRUNC(SYSDATE))
    AND (o.fecha_cierre IS NULL OR o.fecha_cierre >= TRUNC(SYSDATE))
- ORDER BY o.cte_elemento, agente, o.codigo_objeto
+ ORDER BY cte_elemento, agente, o.codigo_objeto
 """
 
 

@@ -5,15 +5,18 @@ import { Close } from "../icons";
 
 // Picker modal para elegir una falla sin saber de memoria el código interno:
 // busca por código visible (nro/gestión) o texto de la descripción corta.
-// Al abrir, sin texto, ya trae las más recientes (no deja el área en blanco).
-export default function FallaSearchModal({ onClose, onSelect }) {
-  const [q, setQ] = useState("");
+// Abre buscando lo ya escrito en el campo; sin texto, trae las más recientes.
+export default function FallaSearchModal({ inicial, onClose, onSelect }) {
+  const [q, setQ] = useState((inicial ?? "").trim());
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const inputRef = useRef(null);
   const dlgRef = useDialog(onClose, inputRef);
   const titleId = useId();
+  const primera = useRef(true);
+
+  useEffect(() => { inputRef.current?.select(); }, []);
 
   useEffect(() => {
     let cancelado = false;
@@ -28,7 +31,8 @@ export default function FallaSearchModal({ onClose, onSelect }) {
       } finally {
         if (!cancelado) setLoading(false);
       }
-    }, q ? 300 : 0);
+    }, q && !primera.current ? 300 : 0);
+    primera.current = false;
     return () => { cancelado = true; clearTimeout(t); };
   }, [q]);
 

@@ -40,7 +40,8 @@ def componentes_binds(flags: TipoComponente) -> dict[str, str]:
         return value if (flags & bit) else ""
 
     return {
-        "alimenta": on(TipoComponente.ALIMENTA, "ALIMENTA"),
+        # Los alimentadores en uso son 'AL'; los 'ALIMENTA' sólo tienen eventos de 2012.
+        "alimenta": on(TipoComponente.ALIMENTA, "AL"),
         "autotran": on(TipoComponente.AUTOTRAN, "AUTOTRAN"),
         "cap_serie": on(TipoComponente.CAP_SERIE, "CAP-SERIE"),
         "cap_shunt": on(TipoComponente.CAP_SHUNT, "CAP-SHUNT"),

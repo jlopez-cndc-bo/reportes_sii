@@ -171,3 +171,15 @@ def test_filtro_agente_texto_sigue_siendo_like():
         cod_falla=None, agente="ENDE",
     )
     assert "LIKE UPPER(:agente)" in sql and params == {"agente": "%ENDE%"}
+
+
+def test_unir_repetidas_detalle_informes():
+    from datetime import datetime as dt
+
+    from app.sisfalla.reportes import _unir_repetidas
+    f = lambda h: dt(2026, 11, 24, h)
+    fila = lambda op, h, falla=260297: {"codFalla": falla, "agente": "CNDC", "tipoOperacion": op, "fechaTransaccion": f(h)}
+    rows = _unir_repetidas([fila("TERMINA", 14), fila("ELABORA", 12), fila("ELABORA", 11), fila("ELABORA", 10),
+                            fila("ELABORA", 9, 260295), fila("ELABORA", 8)])
+    assert [(r["tipoOperacion"], r["veces"], r["fechaDesde"].hour, r["fechaTransaccion"].hour) for r in rows] == [
+        ("TERMINA", 1, 14, 14), ("ELABORA", 3, 10, 12), ("ELABORA", 1, 9, 9), ("ELABORA", 1, 8, 8)]
