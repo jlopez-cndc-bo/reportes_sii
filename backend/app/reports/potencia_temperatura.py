@@ -89,21 +89,43 @@ def _curvas(dia: date, ius: list[str]) -> dict[str, list[tuple[float, float]]]:
     return {k: v for k, v in out.items() if len({t for t, _ in v}) >= 2}
 
 
+def _fuera_de_servicio(dia: date, codigos: list[str]) -> set[str]:
+    """Generadores que según OBJETOS aún no entraban o ya habían cerrado ese día.
+
+    Los que no están en OBJETOS (estados de ciclo combinado…) no se descartan. Sólo para fechas sin
+    Excel: desde nov-2020 hay unidades en el Excel antes de su fecha_inicio (ORU20-38, EDO03).
+    """
+    if not codigos:
+        return set()
+    binds: dict[str, Any] = {f"c{i}": c for i, c in enumerate(codigos)}
+    binds.update(dia=dia, gen="GENERADOR")
+    filas = query(f"""
+        SELECT codigo_objeto FROM objetos
+         WHERE cte_elemento = :gen
+           AND codigo_objeto IN ({", ".join(f":c{i}" for i in range(len(codigos)))})
+           AND (fecha_inicio > :dia OR fecha_cierre < :dia)""", binds)
+    return {f["codigo_objeto"] for f in filas}
+
+
 def efectiva_dia(codigos: list[str], dia: date) -> tuple[dict[str, float | None], bool]:
     """(potencia efectiva de cada unidad ese día, oficial).
 
     Con vigencia oficial: el Excel (oficial=True). Sin ella (antes de nov-2020): las térmicas con
     curva en POSTDES.GAS se evalúan a su temperatura media del primer archivo (verificado: el
-    01/11/2020 las 45 con curva dan el valor del Excel); el resto, la vigencia más próxima.
+    01/11/2020 las 45 con curva dan el valor del Excel); el resto, la vigencia más próxima. Las
+    unidades que según OBJETOS aún no existían (o ya cerraron) quedan en None: no pesan.
     """
     if vigencia(dia):
         return {c: efectiva(c, dia) for c in codigos}, True
-    out = {c: efectiva_proxima(c, dia) for c in codigos}
+    fuera = _fuera_de_servicio(dia, codigos)
+    out = {c: None if c in fuera else efectiva_proxima(c, dia) for c in codigos}
     termicas = [c for c in codigos if c in T_MEDIA_INICIAL]
     if termicas:
         term = _termicas(dia, sorted({c for cod in termicas for c in _codigo_curva(cod)}))
         curvas = _curvas(dia, sorted({t["iu"] for t in term.values()}))
         for cod in termicas:
+            if cod in fuera:
+                continue
             for c in _codigo_curva(cod):
                 if c in term and term[c]["iu"] in curvas:
                     out[cod] = round(interpolar(curvas[term[c]["iu"]], T_MEDIA_INICIAL[cod]), 2)
@@ -112,7 +134,8 @@ def efectiva_dia(codigos: list[str], dia: date) -> tuple[dict[str, float | None]
 
 
 NOTA_SIN_OFICIAL = ("Sin potencia efectiva oficial (Excel) para la fecha: las térmicas usan su curva "
-                    "de POSTDES.GAS a la temperatura media y el resto la vigencia más próxima.")
+                    "de POSTDES.GAS a la temperatura media y el resto la vigencia más próxima. "
+                    "Sólo se consideran unidades vigentes en el SII.")
 
 
 def potencias_dia(dia: date) -> list[dict[str, Any]]:

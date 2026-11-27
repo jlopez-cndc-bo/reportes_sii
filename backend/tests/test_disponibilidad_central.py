@@ -27,6 +27,8 @@ def test_sin_vigencia_usa_la_mas_proxima_y_avisa(monkeypatch):
     monkeypatch.setattr(hd, "query", lambda sql, params=None: (
         [{"codigo_objeto": "COR01"}] if "DISTINCT" in sql else [{"id_objeto": 1}]))
     monkeypatch.setattr(hd, "report", lambda *a, **k: {"rows": []})
+    from app.reports import potencia_temperatura as PT
+    monkeypatch.setattr(PT, "query", lambda sql, params=None: [])  # OBJETOS: todas existían
     res = hd.report_central(datetime(2019, 1, 1), datetime(2019, 1, 31), [1])
     assert res["rows"][0]["disponibilidad"] == 100.0
     assert "vigencia 01/11/2020" in res["aviso"] and "más próxima" in res["aviso"]

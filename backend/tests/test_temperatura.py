@@ -75,3 +75,19 @@ def test_efectiva_proxima_fuera_de_vigencia():
     from app.potencia_efectiva import efectiva, efectiva_proxima
     assert efectiva("GCH11", date(2019, 6, 1)) is None
     assert efectiva_proxima("GCH11", date(2019, 6, 1)) == efectiva("GCH11", date(2020, 11, 10))
+
+
+def test_sin_excel_no_pesan_unidades_que_aun_no_existian(monkeypatch):
+    # Enero 2019: AGU01 entra en OBJETOS el 06/07/2019; la vigencia más próxima (nov-2020) sí la trae.
+    from datetime import date
+
+    from app.potencia_efectiva import efectiva_proxima
+    from app.reports import potencia_temperatura as PT
+
+    def fake_query(sql, params=None):
+        assert "objetos" in sql.lower() and params["dia"] == date(2019, 1, 15)
+        return [{"codigo_objeto": "AGU01"}]
+    monkeypatch.setattr(PT, "query", fake_query)
+    pef, oficial = PT.efectiva_dia(["AGU01", "COR01"], date(2019, 1, 15))
+    assert oficial is False and pef["AGU01"] is None
+    assert pef["COR01"] == efectiva_proxima("COR01", date(2019, 1, 15))
