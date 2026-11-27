@@ -2,6 +2,9 @@ name: Build web package
 
 on:
   workflow_dispatch:
+  # Cada push a main arma el paquete; instalarlo sigue siendo manual (deploy/actualizar.sh).
+  push:
+    branches: [main]
 
 env:
   PYTHON_VERSION: "3.12"
