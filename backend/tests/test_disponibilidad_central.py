@@ -42,3 +42,15 @@ def test_unidades_que_no_existian_no_pesan(monkeypatch):
         {"codigo_objeto": "AGU01", "hora_desconectadas": 24.0, "total": 48}]})
     fila = hd.report_central(datetime(2021, 1, 1), datetime(2021, 1, 2), [1])["rows"][0]
     assert fila["unidades"] == 1 and fila["disponibilidad"] == 50.0
+
+
+def test_central_sin_unidades_vigentes_muestra_cero_unidades(monkeypatch):
+    # Aguaí en enero 2019: ninguna unidad vigente en el Sistema de Información → 0 unidades y «-».
+    monkeypatch.setattr(hd, "query", lambda sql, params=None: (
+        [{"codigo_objeto": "AGU01"}] if "DISTINCT" in sql else [{"id_objeto": 1}]))
+    monkeypatch.setattr(hd, "report", lambda *a, **k: {"rows": []})
+    from app.reports import potencia_temperatura as PT
+    monkeypatch.setattr(PT, "query", lambda sql, params=None: [
+        {"codigo_objeto": c} for c in ("AGU01", "AGU02", "AGU03")])
+    fila = hd.report_central(datetime(2019, 1, 1), datetime(2019, 1, 31), [1])["rows"][0]
+    assert fila["central"] == "Aguaí" and fila["unidades"] == 0 and fila["disponibilidad"] is None

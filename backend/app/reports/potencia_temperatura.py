@@ -135,7 +135,7 @@ def efectiva_dia(codigos: list[str], dia: date) -> tuple[dict[str, float | None]
 
 NOTA_SIN_OFICIAL = ("Sin potencia efectiva oficial (Excel) para la fecha: las térmicas usan su curva "
                     "de POSTDES.GAS a la temperatura media y el resto la vigencia más próxima. "
-                    "Sólo se consideran unidades vigentes en el SII.")
+                    "Sólo se consideran unidades vigentes en el Sistema de Información.")
 
 
 def potencias_dia(dia: date) -> list[dict[str, Any]]:

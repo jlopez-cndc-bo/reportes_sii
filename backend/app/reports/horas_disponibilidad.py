@@ -121,7 +121,7 @@ def report_central(
             total_mw = sum(pesos.values())
             disp = round(sum(p * (horas_periodo - horas.get(c, 0)) for c, p in pesos.items())
                          / (horas_periodo * total_mw) * 100, 2)
-        rows.append({"central": central, "unidades": len(pesos) or len(cods), "disponibilidad": disp,
+        rows.append({"central": central, "unidades": len(pesos), "disponibilidad": disp,
                      "hora_desconectadas": round(h, 2), "total": horas_periodo})
     return {"table": "CENTRAL", "columns": columns, "rows": rows,
             "aviso": _aviso_central(vig, fuera, f2.date())}
